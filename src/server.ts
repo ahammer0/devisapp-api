@@ -5,6 +5,7 @@ import mysql from "promise-mysql";
 import { config } from "dotenv";
 
 import quotesRoutes from "./routes/quotesRoutes";
+import userRoutes from "./routes/userRoutes";
 
 config();
 
@@ -27,6 +28,8 @@ mysql
   .then((connection) => {
     console.log("Database connected");
     quotesRoutes(app, connection);
+    userRoutes(app, connection);
+
   })
   .catch(err=>console.log(err));
 
