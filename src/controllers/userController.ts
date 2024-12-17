@@ -2,7 +2,7 @@ import { Connection } from "promise-mysql";
 import UserModel from "../models/userModel";
 import { Response, Request } from "express";
 import bcrypt from "bcryptjs";
-import jwt, { Secret } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 export default class UserController {
   db: Connection;

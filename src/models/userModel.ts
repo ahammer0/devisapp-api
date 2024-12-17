@@ -17,9 +17,6 @@ export default class UserModel {
     } catch (e:any) {
       if(e.code === "ER_DUP_ENTRY"){
         throw "email déjà utilisée"
-      }
-      if (typeof e === "string") {
-        throw e;
       } else {
         throw "une erreur s'est produite";
       }
@@ -34,9 +31,6 @@ export default class UserModel {
       }
       return [...res.map((item: any) => ({ ...item }))];
     } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
       throw "une erreur s'est produite";
     }
   }
@@ -49,9 +43,6 @@ export default class UserModel {
       }
       return { ...res[0] };
     } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
       throw "une erreur s'est produite";
     }
   }
@@ -64,9 +55,6 @@ export default class UserModel {
       }
       return { ...res[0] };
     } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
       throw "une erreur s'est produite";
     }
   }
@@ -80,9 +68,6 @@ export default class UserModel {
       const recordedItem = await this.getById(id);
       return recordedItem;
     } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
       throw "une erreur s'est produite";
     }
   }
@@ -95,9 +80,6 @@ export default class UserModel {
       }
       return true
     } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
       throw "une erreur s'est produite";
     }
   }

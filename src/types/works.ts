@@ -9,3 +9,4 @@ export type work = {
   isFavorite: boolean;
   type:"template"|"custom";
 }
+export type workCreate = Omit<work, "id">
