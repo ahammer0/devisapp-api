@@ -23,3 +23,8 @@ export type quote_media = {
   alt_text: string;
   quote_id: number;
 }
+
+export type full_quote = quote&{
+  quote_elements: quote_element[],
+  quote_medias: quote_media[]
+}
