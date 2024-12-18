@@ -17,7 +17,7 @@ export default abstract class Controller {
 
     if (err instanceof ErrorResponse) {
       res.status(err.code).json({ message: err.message });
-      if (env === "dev") console.error(err.message);
+      if (env === "dev") console.error("\x1b[31m"+"Error: " + err.message+"\x1b[0m");
       return;
     }
     if (typeof err === "string") {
@@ -26,7 +26,7 @@ export default abstract class Controller {
     }
 
     if (env === "dev") {
-      console.error(err);
+      console.error("\x1b[31m"+err+"\x1b[0m");
       res.status(500).json({ err });
       return;
     } else {
