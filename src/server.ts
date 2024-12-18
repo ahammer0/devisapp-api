@@ -7,6 +7,7 @@ import { config } from "dotenv";
 import quotesRoutes from "./routes/quotesRoutes";
 import userRoutes from "./routes/userRoutes";
 import workRoutes from "./routes/workRoutes";
+import adminRoutes from "./routes/adminRoutes";
 
 config();
 
@@ -31,6 +32,7 @@ mysql
     quotesRoutes(app, connection);
     userRoutes(app, connection);
     workRoutes(app, connection);
+    adminRoutes(app, connection);
 
   })
   .catch(err=>console.log(err));
