@@ -1,12 +1,15 @@
-import { Connection } from "promise-mysql";
 import { Response, Request } from "express";
+import { Connection } from "promise-mysql";
 import jwt from "jsonwebtoken";
+import UserModel from "../models/userModel";
 
 export default class AdminController {
   db: Connection;
+  userModel: UserModel;
 
   constructor(db: Connection) {
     this.db = db;
+    this.userModel = new UserModel(this.db);
 
     this.login = this.login.bind(this);
 
@@ -18,7 +21,6 @@ export default class AdminController {
     this.getAllPayments = this.getAllPayments.bind(this);
   }
 
-  //TODO refacto to take same time if no email found
   async login(req: Request, res: Response) {
     const { key } = req.body;
     const adminKey = process.env.ADMIN_KEY;
@@ -46,19 +48,61 @@ export default class AdminController {
   /////                                   //////
   //////////////////////////////////////////////
   async getAllUsers(req: Request, res: Response) {
-    res.send("getAllUsers");
+    try{
+      const users = await this.userModel.getAll()
+      res.status(200).json(users);
+    }catch(e){
+      if (typeof e === "string") {
+        res.status(500).json({ message: e });
+      } else {
+        res.status(500).json({ message: "une erreur s'est produite" });
+      }
+    }
   }
   async getOneUser(req: Request, res: Response) {
-    const id = req.params.id;
-    res.send("getOneUser"+id);
+    const id = parseInt(req.params.id)
+    try{
+      const user = await this.userModel.getById(id)
+      res.status(200).json(user);
+    }catch(e){
+      if (typeof e === "string") {
+        res.status(500).json({ message: e });
+      } else {
+        res.status(500).json({ message: "une erreur s'est produite" });
+      }
+    }
   }
   async editUser(req: Request, res: Response) {
-    const id = req.params.id;
-    res.send("editUser"+id);
+    const id = parseInt(req.params.id);
+    const user = req.body;
+    try{
+      const updatedUser = await this.userModel.update(id, user)
+      res.status(200).json(updatedUser);
+    }catch(e){
+      if (typeof e === "string") {
+        res.status(500).json({ message: e });
+      } else {
+        res.status(500).json({ message: "une erreur s'est produite" });
+      }
+    }
   }
   async deleteUser(req: Request, res: Response) {
-    const id = req.params.id;
-    res.send("deleteUser"+id);
+    const id = parseInt(req.params.id);
+    try{
+      const resp = await this.userModel.delete(id)
+      if(!resp){
+        throw "Cannot delete user"
+      }
+      res.status(200).json({message: "User deleted"});
+    }
+    catch(e){
+      console.log(e);
+      if (typeof e === "string") {
+        res.status(500).json({ message: e });
+      } else {
+        res.status(500).json({ message: "une erreur s'est produite" });
+      }
+    }
   }
   //////////////////////////////////////////////
   /////                                   //////
