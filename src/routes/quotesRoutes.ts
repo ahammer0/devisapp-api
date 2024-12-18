@@ -13,6 +13,6 @@ const quotesRoutes = (app: Express, db: Connection) => {
   router.put("/:id", controller.editQuote);
   router.delete("/:id", controller.deleteQuote);
 
-  app.use("/quotes",requireAuth, router);
+  app.use("/quotes", requireAuth, router);
 };
 export default quotesRoutes;

@@ -7,9 +7,7 @@ const userRoutes = (app: Express, db: Connection) => {
   const controller = new UserController(db);
 
   app.post("/login", controller.login);
-  app.post("/register",controller.register);
-  app.put("/user",requireAuth,controller.updateUser)
-
+  app.post("/register", controller.register);
+  app.put("/user", requireAuth, controller.updateUser);
 };
 export default userRoutes;
-

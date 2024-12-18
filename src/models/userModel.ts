@@ -14,9 +14,9 @@ export default class UserModel {
       }
       const recordedItem = await this.getById(res.insertId);
       return recordedItem;
-    } catch (e:any) {
-      if(e.code === "ER_DUP_ENTRY"){
-        throw "email déjà utilisée"
+    } catch (e: any) {
+      if (e.code === "ER_DUP_ENTRY") {
+        throw "email déjà utilisée";
       } else {
         throw "une erreur s'est produite";
       }
@@ -49,7 +49,10 @@ export default class UserModel {
 
   async getByEmail(email: string): Promise<user | null> {
     try {
-      const res = await this.db.query("SELECT * FROM users WHERE email = ?", email);
+      const res = await this.db.query(
+        "SELECT * FROM users WHERE email = ?",
+        email,
+      );
       if (res.length === 0) {
         throw "Aucun résultat";
       }
@@ -59,9 +62,15 @@ export default class UserModel {
     }
   }
 
-  async update(id:number, user:Partial<Omit<user,'id'>>): Promise<user | null> {
+  async update(
+    id: number,
+    user: Partial<Omit<user, "id">>,
+  ): Promise<user | null> {
     try {
-      const res = await this.db.query("UPDATE users SET ? WHERE id = ?", [user, id]);
+      const res = await this.db.query("UPDATE users SET ? WHERE id = ?", [
+        user,
+        id,
+      ]);
       if (res.affectedRows !== 1) {
         throw null;
       }
@@ -78,7 +87,7 @@ export default class UserModel {
       if (res.affectedRows !== 1) {
         throw null;
       }
-      return true
+      return true;
     } catch (e) {
       throw "une erreur s'est produite";
     }

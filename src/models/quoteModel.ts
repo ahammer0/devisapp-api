@@ -32,8 +32,8 @@ export default class QuoteModel {
 
       const res2 = await Promise.allSettled(
         quote_elements.map((el) =>
-          this.db.query("INSERT INTO quote_elements SET ?", el)
-        )
+          this.db.query("INSERT INTO quote_elements SET ?", el),
+        ),
       );
       if (res2.filter((el) => el.status === "rejected").length > 0) {
         throw new Error("Could not insert quote elements");
@@ -52,7 +52,7 @@ export default class QuoteModel {
     try {
       const res = await this.db.query(
         "SELECT * FROM quotes WHERE user_id = ?",
-        id
+        id,
       );
       return res;
     } catch (e) {
@@ -64,7 +64,7 @@ export default class QuoteModel {
   }
   async getByIdByUserId(
     id: number,
-    userId: number
+    userId: number,
   ): Promise<full_quote | null> {
     try {
       const res = await this.db.query(
@@ -72,7 +72,7 @@ export default class QuoteModel {
         LEFT JOIN quote_elements ON quotes.id = quote_elements.quote_id 
         LEFT JOIN quote_medias ON quotes.id = quote_medias.quote_id 
         WHERE quotes.id = ? and quotes.user_id = ?`,
-        [id, userId]
+        [id, userId],
       );
 
       const quote_elements = QuoteModel.extractQuoteElementsFromSqlJoin(res);
@@ -102,11 +102,11 @@ export default class QuoteModel {
       }
       const quote_elements = await this.db.query(
         "SELECT * FROM quote_elements WHERE quote_id = ?",
-        id
+        id,
       );
       const quote_medias = await this.db.query(
         "SELECT * FROM quote_medias WHERE quote_id = ?",
-        id
+        id,
       );
       return { ...res[0], quote_elements, quote_medias };
     } catch (e) {
@@ -116,7 +116,7 @@ export default class QuoteModel {
   async updateByidByUserId(
     id: number,
     userId: number,
-    quote: Partial<Omit<full_quote, "id">>
+    quote: Partial<Omit<full_quote, "id">>,
   ): Promise<full_quote | null> {
     const { quote_elements, quote_medias, ...base_quote } = quote;
     const sql_base = "UPDATE quotes SET ? WHERE id = ? AND user_id = ?";
@@ -137,12 +137,12 @@ export default class QuoteModel {
           quote_elements.map((el) => {
             const { quote_id, ...newEl } = el;
             return this.db.query(sql_quote_elements, [newEl, el.id, id]);
-          })
+          }),
         );
 
         if (
           res_elements.filter(
-            (el) => el.status === "rejected" || el.value.affectedRows !== 1
+            (el) => el.status === "rejected" || el.value.affectedRows !== 1,
           ).length > 0
         ) {
           throw "Could not update quote elements";
@@ -154,12 +154,12 @@ export default class QuoteModel {
           quote_medias.map((el) => {
             const { quote_id, ...newEl } = el;
             return this.db.query(sql_quote_medias, [newEl, el.id, id]);
-          })
+          }),
         );
 
         if (
           res_medias.filter(
-            (el) => el.status === "rejected" || el.value.affectedRows !== 1
+            (el) => el.status === "rejected" || el.value.affectedRows !== 1,
           ).length > 0
         ) {
           throw "Could not update quote medias";
@@ -194,7 +194,7 @@ export default class QuoteModel {
   static extractQuoteElementsFromSqlJoin(
     joinResponse: (quote &
       quote_media &
-      quote_element & { quote_media_id: number; quote_element_id: number })[]
+      quote_element & { quote_media_id: number; quote_element_id: number })[],
   ): quote_element[] {
     const quote_elements = joinResponse.reduce(
       (acc: quote_element[], el: (typeof joinResponse)[0]) => {
@@ -211,7 +211,7 @@ export default class QuoteModel {
         }
         return acc;
       },
-      []
+      [],
     );
     return quote_elements;
   }
@@ -219,7 +219,7 @@ export default class QuoteModel {
   static extractQuoteMediasFromSqlJoin(
     joinResponse: (quote &
       quote_media &
-      quote_element & { quote_media_id: number; quote_element_id: number })[]
+      quote_element & { quote_media_id: number; quote_element_id: number })[],
   ): quote_media[] {
     const quote_medias = joinResponse.reduce(
       (acc: quote_media[], el: (typeof joinResponse)[0]) => {
@@ -234,7 +234,7 @@ export default class QuoteModel {
         }
         return acc;
       },
-      []
+      [],
     );
     return quote_medias;
   }
@@ -242,7 +242,7 @@ export default class QuoteModel {
   static extractQuoteBaseFromSqlJoin(
     joinResponse: quote &
       quote_media &
-      quote_element & { quote_media_id: number; quote_element_id: number }
+      quote_element & { quote_media_id: number; quote_element_id: number },
   ): quote {
     const quote_base = {
       id: joinResponse.quote_id,

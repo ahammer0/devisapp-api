@@ -17,7 +17,7 @@ export default class quotesController {
     this.deleteQuote = this.deleteQuote.bind(this);
   }
   async addQuote(req: Request, res: Response) {
-    const newQuote :any = req.body;
+    const newQuote: any = req.body;
     newQuote.expires_at = new Date(newQuote.expires_at);
 
     //@ts-ignore
@@ -63,7 +63,7 @@ export default class quotesController {
       }
     }
   }
-    
+
   async editQuote(req: Request, res: Response) {
     //@ts-ignore
     const userId = req.id;
@@ -74,7 +74,11 @@ export default class quotesController {
     quote.created_at = new Date(quote.created_at);
 
     try {
-      const updatedQuote = await this.quoteModel.updateByidByUserId(quoteId, userId, req.body);
+      const updatedQuote = await this.quoteModel.updateByidByUserId(
+        quoteId,
+        userId,
+        req.body,
+      );
       res.status(200).json(updatedQuote);
     } catch (e) {
       if (typeof e === "string") {

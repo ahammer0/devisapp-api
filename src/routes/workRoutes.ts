@@ -1,4 +1,4 @@
-import express,{ Express } from "express";
+import express, { Express } from "express";
 import { Connection } from "promise-mysql";
 import WorkController from "../controllers/workController";
 import requireAuth from "../middlewares/requireAuth";
@@ -13,7 +13,6 @@ const workRoutes = (app: Express, db: Connection) => {
   router.put("/:id", requireAuth, controller.editWorkById);
   router.delete("/:id", requireAuth, controller.deleteWorkById);
 
-  app.use("/works",requireAuth, router);
-
+  app.use("/works", requireAuth, router);
 };
 export default workRoutes;

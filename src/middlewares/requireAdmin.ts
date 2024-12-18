@@ -7,7 +7,7 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
     throw new Error("JWT_SECRET is not defined in env");
   }
   if (!req.headers.authorization) {
-    console.log('bite');
+    console.log("bite");
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
@@ -24,11 +24,10 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
     req.id = decoded.id;
     next();
   } catch (e) {
-      console.log('bite');
-      console.log(e);
+    console.log("bite");
+    console.log(e);
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
 };
 export default requireAdmin;
-

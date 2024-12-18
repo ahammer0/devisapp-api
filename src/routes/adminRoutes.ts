@@ -9,14 +9,13 @@ const adminRoutes = (app: Express, db: Connection) => {
   app.post("/admin/login", controller.login);
 
   const router = express.Router();
-  router.get("/users/all",controller.getAllUsers),
-  router.get("/users/:id", controller.getOneUser);
+  router.get("/users/all", controller.getAllUsers),
+    router.get("/users/:id", controller.getOneUser);
   router.put("/users/:id", controller.editUser);
   router.delete("/users/:id", controller.deleteUser);
 
-  router.get("/payments/all",controller.getAllPayments)
+  router.get("/payments/all", controller.getAllPayments);
 
-  app.use("/admin",requireAdmin, router);
+  app.use("/admin", requireAdmin, router);
 };
 export default adminRoutes;
-

@@ -90,18 +90,17 @@ export default class UserController {
       });
       res.status(200).json({ ...user, password: undefined });
     } catch (e) {
-      if(typeof e === "string"){
+      if (typeof e === "string") {
         res.status(500).json({ message: e });
-      }
-      else{
+      } else {
         res.status(500).json({ message: "une erreur s'est produite" });
       }
     }
   }
 
-  async updateUser(req: Request, res:Response){
+  async updateUser(req: Request, res: Response) {
     //@ts-ignore
-    const id:number = req.id;
+    const id: number = req.id;
     const {
       email,
       first_name,
@@ -118,10 +117,10 @@ export default class UserController {
     } = req.body;
 
     let password;
-    if(req.body.password){
+    if (req.body.password) {
       password = await bcrypt.hash(req.body.password, 10);
     }
-    try{
+    try {
       const user = await this.userModel.update(id, {
         email,
         password,
@@ -136,13 +135,12 @@ export default class UserController {
         company_type,
         subscription_plan,
         quote_infos,
-      })
+      });
       res.status(200).json({ ...user, password: undefined });
-    }catch(e){
-      if(typeof e === "string"){
+    } catch (e) {
+      if (typeof e === "string") {
         res.status(500).json({ message: e });
-      }
-      else{
+      } else {
         res.status(500).json({ message: "une erreur s'est produite" });
       }
     }

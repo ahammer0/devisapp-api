@@ -55,13 +55,13 @@ export default class WorkController {
     try {
       const work = await this.workModel.getByIdByUserId(
         parseInt(req.params.id),
-        userId
+        userId,
       );
       res.status(200).json(work);
     } catch (e) {
       if (typeof e === "string") {
         res.status(500).json({ message: e });
-      } else{
+      } else {
         res.status(500).json({ message: "une erreur s'est produite" });
       }
     }
@@ -75,7 +75,7 @@ export default class WorkController {
       const work = await this.workModel.updateByidByUserId(
         parseInt(req.params.id),
         userId,
-        req.body
+        req.body,
       );
       res.status(200).json(work);
     } catch (e) {
@@ -91,7 +91,10 @@ export default class WorkController {
     //@ts-ignore
     const userId: number = parseInt(req.id);
     try {
-      const work = await this.workModel.deleteByIdByUserId(parseInt(req.params.id),userId);
+      const work = await this.workModel.deleteByIdByUserId(
+        parseInt(req.params.id),
+        userId,
+      );
       res.status(200).json(work);
     } catch (e) {
       if (typeof e === "string") {

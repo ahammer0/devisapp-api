@@ -10,14 +10,14 @@ export type user = {
   ape_code: string;
   rcs_code: string;
   tva_number: string;
-  company_type:"Individuelle"|"SAS"|"SARL"|"EURL";
-  account_status:"valid"|"blocked"|"deleted"|"waiting";
-  subscription_plan:"free"|"paid";
+  company_type: "Individuelle" | "SAS" | "SARL" | "EURL";
+  account_status: "valid" | "blocked" | "deleted" | "waiting";
+  subscription_plan: "free" | "paid";
   created_at: Date; //timestamp
   updated_at: Date; //timestamp
   quote_infos: string;
-}
-export type userCreate ={
+};
+export type userCreate = {
   email: string;
   password: string;
   first_name?: string;
@@ -28,10 +28,10 @@ export type userCreate ={
   ape_code?: string;
   rcs_code?: string;
   tva_number?: string;
-  company_type:"Individuelle"|"SAS"|"SARL"|"EURL";
-  account_status:"valid"|"blocked"|"deleted"|"waiting";
-  subscription_plan:"free"|"paid";
+  company_type: "Individuelle" | "SAS" | "SARL" | "EURL";
+  account_status: "valid" | "blocked" | "deleted" | "waiting";
+  subscription_plan: "free" | "paid";
   created_at?: Date; //timestamp
   expires_at?: Date; //timestamp
   quote_infos?: string;
-}
+};
