@@ -1,10 +1,10 @@
 import express, { Express } from "express";
 import { Connection } from "promise-mysql";
-import quotesController from "../controllers/quotesController";
+import QuotesController from "../controllers/quotesController";
 import requireAuth from "../middlewares/requireAuth";
 
 const quotesRoutes = (app: Express, db: Connection) => {
-  const controller = new quotesController(db);
+  const controller = new QuotesController(db);
 
   const router = express.Router();
   router.post("/add", controller.addQuote);

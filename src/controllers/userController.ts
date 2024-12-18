@@ -50,7 +50,7 @@ export default class UserController extends Controller {
         res.status(401).json({ message: "Invalid credentials" });
       }
     } catch (err) {
-      res.status(401).json({ message: "Invalid credentials" });
+      UserController.handleError(err, res);
     }
   }
 
@@ -90,11 +90,7 @@ export default class UserController extends Controller {
       });
       res.status(200).json({ ...user, password: undefined });
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      UserController.handleError(e, res);
     }
   }
 
@@ -138,11 +134,7 @@ export default class UserController extends Controller {
       });
       res.status(200).json({ ...user, password: undefined });
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      UserController.handleError(e, res);
     }
   }
 }

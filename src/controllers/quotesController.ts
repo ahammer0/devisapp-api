@@ -3,7 +3,7 @@ import { Connection } from "promise-mysql";
 import { Request, Response } from "express";
 import Controller from "../utilities/Controller";
 
-export default class quotesController extends Controller
+export default class QuotesController extends Controller
 {
   quoteModel: QuoteModel;
 
@@ -28,11 +28,7 @@ export default class quotesController extends Controller
       const quote = await this.quoteModel.create(newQuote);
       res.status(201).json(quote);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      QuotesController.handleError(e, res);
     }
   }
   async getAllQuotes(req: Request, res: Response) {
@@ -42,11 +38,7 @@ export default class quotesController extends Controller
       const quotes = await this.quoteModel.getAllByUserId(id);
       res.status(200).json(quotes);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      QuotesController.handleError(e, res);
     }
   }
   async getOneQuote(req: Request, res: Response) {
@@ -57,11 +49,7 @@ export default class quotesController extends Controller
       const quote = await this.quoteModel.getByIdByUserId(quoteId, userId);
       res.status(200).json(quote);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      QuotesController.handleError(e, res);
     }
   }
 
@@ -82,11 +70,7 @@ export default class quotesController extends Controller
       );
       res.status(200).json(updatedQuote);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      QuotesController.handleError(e, res);
     }
   }
   async deleteQuote(req: Request, res: Response) {
@@ -97,11 +81,7 @@ export default class quotesController extends Controller
       const quote = await this.quoteModel.deleteByIdByUserId(quoteId, userId);
       res.status(200).json(quote);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      QuotesController.handleError(e, res);
     }
   }
 }

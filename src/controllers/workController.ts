@@ -27,11 +27,7 @@ export default class WorkController extends Controller {
       const work = await this.workModel.create(newWork);
       res.status(201).json(work);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      WorkController.handleError(e, res);
     }
   }
   async getAllWorks(req: Request, res: Response) {
@@ -41,11 +37,7 @@ export default class WorkController extends Controller {
       const works = await this.workModel.getAllByUserId(id);
       res.status(200).json(works);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      WorkController.handleError(e, res);
     }
   }
 
@@ -59,11 +51,7 @@ export default class WorkController extends Controller {
       );
       res.status(200).json(work);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      WorkController.handleError(e, res);
     }
   }
 
@@ -79,11 +67,7 @@ export default class WorkController extends Controller {
       );
       res.status(200).json(work);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      WorkController.handleError(e, res);
     }
   }
 
@@ -97,11 +81,7 @@ export default class WorkController extends Controller {
       );
       res.status(200).json(work);
     } catch (e) {
-      if (typeof e === "string") {
-        res.status(500).json({ message: e });
-      } else {
-        res.status(500).json({ message: "une erreur s'est produite" });
-      }
+      WorkController.handleError(e, res);
     }
   }
 }
