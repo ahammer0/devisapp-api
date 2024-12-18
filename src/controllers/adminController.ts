@@ -3,14 +3,15 @@ import { Connection } from "promise-mysql";
 import jwt from "jsonwebtoken";
 import UserModel from "../models/userModel";
 import PaymentModel from "../models/paymentModel";
+import Controller from "../utilities/Controller";
 
-export default class AdminController {
-  db: Connection;
+export default class AdminController extends Controller{
   userModel: UserModel;
   paymentModel: PaymentModel;
 
   constructor(db: Connection) {
-    this.db = db;
+    super(db)
+    
     this.userModel = new UserModel(this.db);
     this.paymentModel = new PaymentModel(this.db);
 

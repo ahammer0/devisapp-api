@@ -1,47 +1,27 @@
-import { Connection } from "promise-mysql";
 import type { payment, paymentCreate } from "../types/payments";
+import Model from "../utilities/Model";
+import ErrorResponse from "../utilities/ErrorResponse";
 
-export default class PaymentModel {
-  db: Connection;
-
-  constructor(db: Connection) {
-    this.db = db;
-  }
-
+export default class PaymentModel extends Model{
   async create(data: paymentCreate): Promise<payment | null> {
-    try {
       const res = await this.db.query("INSERT INTO payments SET ?", data);
       if (res.affectedRows !== 1) {
-        throw null;
+        throw new ErrorResponse("Could not insert payment", 400);
       }
       const recordedItem = await this.getById(res.insertId);
       return recordedItem;
-    } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      } else {
-        throw "une erreur s'est produite";
-      }
-    }
   }
   async getAll(): Promise<payment[] | null> {
-    try {
       const res = await this.db.query("SELECT * FROM payments");
       if (res.length === 0) {
-        throw "Aucun résultat";
+        throw new ErrorResponse("No results ",204);
       }
       return [...res.map((item: payment) => ({ ...item }))];
-    } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
-      throw "une erreur s'est produite";
-    }
   }
   async getById(id: number): Promise<payment | null> {
     const res = await this.db.query("SELECT * FROM payments WHERE id = ?", id);
     if (res.length === 0) {
-      throw "Aucun résultat";
+      throw new ErrorResponse("No results ",204);
     }
     return { ...res[0] };
   }

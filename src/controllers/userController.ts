@@ -3,13 +3,13 @@ import UserModel from "../models/userModel";
 import { Response, Request } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import Controller from "../utilities/Controller";
 
-export default class UserController {
-  db: Connection;
+export default class UserController extends Controller {
   userModel: UserModel;
 
   constructor(db: Connection) {
-    this.db = db;
+    super(db);
     this.userModel = new UserModel(this.db);
 
     this.login = this.login.bind(this);

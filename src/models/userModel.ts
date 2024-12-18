@@ -1,95 +1,72 @@
-import { Connection } from "promise-mysql";
 import { userCreate, user } from "../types/users";
+import Model from "../utilities/Model";
+import ErrorResponse from "../utilities/ErrorResponse";
 
-export default class UserModel {
-  db: Connection;
-  constructor(db: Connection) {
-    this.db = db;
-  }
+export default class UserModel extends Model {
   async create(data: userCreate): Promise<user | null> {
     try {
       const res = await this.db.query("INSERT INTO users SET ?", data);
       if (res.affectedRows !== 1) {
-        throw null;
+        throw new ErrorResponse("Could not insert user", 400);
       }
       const recordedItem = await this.getById(res.insertId);
       return recordedItem;
     } catch (e: any) {
       if (e.code === "ER_DUP_ENTRY") {
-        throw "email déjà utilisée";
+        throw new ErrorResponse("Email already exists", 400);
       } else {
-        throw "une erreur s'est produite";
+        throw e;
       }
     }
   }
 
   async getAll(): Promise<user[] | null> {
-    try {
-      const res = await this.db.query("SELECT * FROM users");
-      if (res.length === 0) {
-        throw "Aucun résultat";
-      }
-      return [...res.map((item: any) => ({ ...item }))];
-    } catch (e) {
-      throw "une erreur s'est produite";
+    const res = await this.db.query("SELECT * FROM users");
+    if (res.length === 0) {
+      throw new ErrorResponse("No results ", 204);
     }
+    return [...res.map((item: any) => ({ ...item }))];
   }
 
   async getById(id: number): Promise<user | null> {
-    try {
-      const res = await this.db.query("SELECT * FROM users WHERE id = ?", id);
-      if (res.length === 0) {
-        throw "Aucun résultat";
-      }
-      return { ...res[0] };
-    } catch (e) {
-      throw "une erreur s'est produite";
+    const res = await this.db.query("SELECT * FROM users WHERE id = ?", id);
+    if (res.length === 0) {
+      throw new ErrorResponse("No results ", 204);
     }
+    return { ...res[0] };
   }
 
   async getByEmail(email: string): Promise<user | null> {
-    try {
-      const res = await this.db.query(
-        "SELECT * FROM users WHERE email = ?",
-        email,
-      );
-      if (res.length === 0) {
-        throw "Aucun résultat";
-      }
-      return { ...res[0] };
-    } catch (e) {
-      throw "une erreur s'est produite";
+    const res = await this.db.query(
+      "SELECT * FROM users WHERE email = ?",
+      email
+    );
+    if (res.length === 0) {
+      throw new ErrorResponse("No results ", 204);
     }
+    return { ...res[0] };
   }
 
   async update(
     id: number,
-    user: Partial<Omit<user, "id">>,
+    user: Partial<Omit<user, "id">>
   ): Promise<user | null> {
-    try {
-      const res = await this.db.query("UPDATE users SET ? WHERE id = ?", [
-        user,
-        id,
-      ]);
-      if (res.affectedRows !== 1) {
-        throw null;
-      }
-      const recordedItem = await this.getById(id);
-      return recordedItem;
-    } catch (e) {
-      throw "une erreur s'est produite";
+    const res = await this.db.query("UPDATE users SET ? WHERE id = ?", [
+      user,
+      id,
+    ]);
+    if (res.affectedRows !== 1) {
+      throw new ErrorResponse("Could not update user", 400);
     }
+    const recordedItem = await this.getById(id);
+    return recordedItem;
   }
 
   async delete(id: number): Promise<boolean | null> {
-    try {
-      const res = await this.db.query("DELETE FROM users WHERE id = ?", id);
-      if (res.affectedRows !== 1) {
-        throw null;
-      }
-      return true;
-    } catch (e) {
-      throw "une erreur s'est produite";
+    const res = await this.db.query("DELETE FROM users WHERE id = ?", id);
+    if (res.affectedRows !== 1) {
+      throw new ErrorResponse("Could not delete user", 400);
     }
+    return true;
   }
 }

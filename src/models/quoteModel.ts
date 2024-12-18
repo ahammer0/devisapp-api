@@ -1,122 +1,95 @@
-import { Connection } from "promise-mysql";
 import { quote, quote_media, quote_element, full_quote } from "../types/quotes";
+import Model from "../utilities/Model";
+import ErrorResponse from "../utilities/ErrorResponse";
 
-export default class QuoteModel {
-  db: Connection;
-  constructor(db: Connection) {
-    this.db = db;
-  }
-
+export default class QuoteModel extends Model {
   async create(quote: full_quote): Promise<full_quote | null> {
     //base quote
     const { quote_elements, quote_medias, ...base_quote } = quote;
     let recordedItem: full_quote | null = null;
 
-    try {
-      const res = await this.db.query("INSERT INTO quotes SET ?", base_quote);
-      if (res.affectedRows !== 1) {
-        throw new Error("Could not insert quote_base");
-      }
-      recordedItem = await this.getById(res.insertId);
-      const newQuoteId = res.insertId;
-
-      if (!recordedItem) {
-        throw new Error("Could not insert quote_base");
-      }
-
-      //quote_elements
-      const quote_elements = quote.quote_elements.map((el) => ({
-        ...el,
-        quote_id: newQuoteId,
-      }));
-
-      const res2 = await Promise.allSettled(
-        quote_elements.map((el) =>
-          this.db.query("INSERT INTO quote_elements SET ?", el),
-        ),
-      );
-      if (res2.filter((el) => el.status === "rejected").length > 0) {
-        throw new Error("Could not insert quote elements");
-      }
-
-      return await this.getById(newQuoteId);
-    } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      } else {
-        throw "une erreur s'est produite";
-      }
+    const res = await this.db.query("INSERT INTO quotes SET ?", base_quote);
+    if (res.affectedRows !== 1) {
+      throw new ErrorResponse("Could not insert quote_base", 400);
     }
+    recordedItem = await this.getById(res.insertId);
+    const newQuoteId = res.insertId;
+
+    if (!recordedItem) {
+      throw new ErrorResponse("Could not insert quote_base", 400);
+    }
+
+    //quote_elements
+    const newQuote_elements = quote.quote_elements.map((el) => ({
+      ...el,
+      quote_id: newQuoteId,
+    }));
+
+    const res2 = await Promise.allSettled(
+      newQuote_elements.map((el) =>
+        this.db.query("INSERT INTO quote_elements SET ?", el)
+      )
+    );
+    if (res2.filter((el) => el.status === "rejected").length > 0) {
+      throw new ErrorResponse(
+        "Could not insert quote_elements after inserting quote",
+        400
+      );
+    }
+
+    return await this.getById(newQuoteId);
   }
   async getAllByUserId(id: number): Promise<full_quote[] | null> {
-    try {
-      const res = await this.db.query(
-        "SELECT * FROM quotes WHERE user_id = ?",
-        id,
-      );
-      return res;
-    } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
-      throw "une erreur s'est produite";
-    }
+    const res = await this.db.query(
+      "SELECT * FROM quotes WHERE user_id = ?",
+      id
+    );
+    return res;
   }
   async getByIdByUserId(
     id: number,
-    userId: number,
+    userId: number
   ): Promise<full_quote | null> {
-    try {
-      const res = await this.db.query(
-        `SELECT *, quotes.id as id, quotes.id as quote_id, quote_elements.id as quote_element_id, quote_medias.id as quote_media_id FROM quotes 
+    const res = await this.db.query(
+      `SELECT *, quotes.id as id, quotes.id as quote_id, quote_elements.id as quote_element_id, quote_medias.id as quote_media_id FROM quotes 
         LEFT JOIN quote_elements ON quotes.id = quote_elements.quote_id 
         LEFT JOIN quote_medias ON quotes.id = quote_medias.quote_id 
         WHERE quotes.id = ? and quotes.user_id = ?`,
-        [id, userId],
-      );
+      [id, userId]
+    );
 
-      const quote_elements = QuoteModel.extractQuoteElementsFromSqlJoin(res);
-      const quote_medias = QuoteModel.extractQuoteMediasFromSqlJoin(res);
-      const quote_base = QuoteModel.extractQuoteBaseFromSqlJoin(res[0]);
+    const quote_elements = QuoteModel.extractQuoteElementsFromSqlJoin(res);
+    const quote_medias = QuoteModel.extractQuoteMediasFromSqlJoin(res);
+    const quote_base = QuoteModel.extractQuoteBaseFromSqlJoin(res[0]);
 
-      const recontructed_quote: full_quote = {
-        ...quote_base,
-        quote_elements,
-        quote_medias,
-      };
+    const recontructed_quote: full_quote = {
+      ...quote_base,
+      quote_elements,
+      quote_medias,
+    };
 
-      return recontructed_quote;
-    } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
-      throw "une erreur s'est produite";
-    }
+    return recontructed_quote;
   }
 
   async getById(id: number): Promise<full_quote | null> {
-    try {
       const res = await this.db.query("SELECT * FROM quotes WHERE id = ?", id);
       if (res.length === 0) {
-        throw "Aucun résultat";
+        throw new ErrorResponse("No results ",204);
       }
       const quote_elements = await this.db.query(
         "SELECT * FROM quote_elements WHERE quote_id = ?",
-        id,
+        id
       );
       const quote_medias = await this.db.query(
         "SELECT * FROM quote_medias WHERE quote_id = ?",
-        id,
+        id
       );
       return { ...res[0], quote_elements, quote_medias };
-    } catch (e) {
-      throw "une erreur s'est produite";
-    }
   }
   async updateByidByUserId(
     id: number,
     userId: number,
-    quote: Partial<Omit<full_quote, "id">>,
+    quote: Partial<Omit<full_quote, "id">>
   ): Promise<full_quote | null> {
     const { quote_elements, quote_medias, ...base_quote } = quote;
     const sql_base = "UPDATE quotes SET ? WHERE id = ? AND user_id = ?";
@@ -125,10 +98,9 @@ export default class QuoteModel {
     const sql_quote_medias =
       "UPDATE quote_medias SET ? WHERE id = ? AND quote_id = ?";
 
-    try {
       const res = await this.db.query(sql_base, [base_quote, id, userId]);
       if (res.affectedRows !== 1) {
-        throw "Trying to update a quote that doesn't exist";
+        throw new ErrorResponse("Could not update quote, no matching id for user", 400);
       }
 
       //handling quote_elements and quote_medias
@@ -137,15 +109,15 @@ export default class QuoteModel {
           quote_elements.map((el) => {
             const { quote_id, ...newEl } = el;
             return this.db.query(sql_quote_elements, [newEl, el.id, id]);
-          }),
+          })
         );
 
         if (
           res_elements.filter(
-            (el) => el.status === "rejected" || el.value.affectedRows !== 1,
+            (el) => el.status === "rejected" || el.value.affectedRows !== 1
           ).length > 0
         ) {
-          throw "Could not update quote elements";
+          throw new ErrorResponse("Could not update quote elements for this quote", 400);
         }
       }
 
@@ -154,47 +126,33 @@ export default class QuoteModel {
           quote_medias.map((el) => {
             const { quote_id, ...newEl } = el;
             return this.db.query(sql_quote_medias, [newEl, el.id, id]);
-          }),
+          })
         );
 
         if (
           res_medias.filter(
-            (el) => el.status === "rejected" || el.value.affectedRows !== 1,
+            (el) => el.status === "rejected" || el.value.affectedRows !== 1
           ).length > 0
         ) {
-          throw "Could not update quote medias";
+          throw new ErrorResponse("Could not update quote medias for this quote", 400);
         }
       }
 
       return await this.getByIdByUserId(id, userId);
-    } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
-      console.log(e);
-      throw "une erreur s'est produite";
-    }
   }
   async deleteByIdByUserId(id: number, userId: number): Promise<boolean> {
     const sql = "DELETE FROM quotes WHERE id = ? AND user_id = ?";
-    try {
       const res = await this.db.query(sql, [id, userId]);
       if (res.affectedRows !== 1) {
-        throw "No matching quote to delete for this user id and quote id";
+        throw new ErrorResponse("Could not delete quote, no matching id for user", 400);
       }
       return true;
-    } catch (e) {
-      if (typeof e === "string") {
-        throw e;
-      }
-      throw `Could not delete quote`;
-    }
   }
 
   static extractQuoteElementsFromSqlJoin(
     joinResponse: (quote &
       quote_media &
-      quote_element & { quote_media_id: number; quote_element_id: number })[],
+      quote_element & { quote_media_id: number; quote_element_id: number })[]
   ): quote_element[] {
     const quote_elements = joinResponse.reduce(
       (acc: quote_element[], el: (typeof joinResponse)[0]) => {
@@ -211,7 +169,7 @@ export default class QuoteModel {
         }
         return acc;
       },
-      [],
+      []
     );
     return quote_elements;
   }
@@ -219,7 +177,7 @@ export default class QuoteModel {
   static extractQuoteMediasFromSqlJoin(
     joinResponse: (quote &
       quote_media &
-      quote_element & { quote_media_id: number; quote_element_id: number })[],
+      quote_element & { quote_media_id: number; quote_element_id: number })[]
   ): quote_media[] {
     const quote_medias = joinResponse.reduce(
       (acc: quote_media[], el: (typeof joinResponse)[0]) => {
@@ -234,7 +192,7 @@ export default class QuoteModel {
         }
         return acc;
       },
-      [],
+      []
     );
     return quote_medias;
   }
@@ -242,7 +200,7 @@ export default class QuoteModel {
   static extractQuoteBaseFromSqlJoin(
     joinResponse: quote &
       quote_media &
-      quote_element & { quote_media_id: number; quote_element_id: number },
+      quote_element & { quote_media_id: number; quote_element_id: number }
   ): quote {
     const quote_base = {
       id: joinResponse.quote_id,

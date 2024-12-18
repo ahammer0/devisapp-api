@@ -1,13 +1,14 @@
 import QuoteModel from "../models/quoteModel";
 import { Connection } from "promise-mysql";
 import { Request, Response } from "express";
+import Controller from "../utilities/Controller";
 
-export default class quotesController {
-  db: Connection;
+export default class quotesController extends Controller
+{
   quoteModel: QuoteModel;
 
   constructor(db: Connection) {
-    this.db = db;
+    super(db);
     this.quoteModel = new QuoteModel(this.db);
 
     this.addQuote = this.addQuote.bind(this);

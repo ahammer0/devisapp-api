@@ -2,13 +2,13 @@ import { Connection } from "promise-mysql";
 import { Request, Response } from "express";
 import WorkModel from "../models/workModel";
 import { workCreate } from "../types/works";
+import Controller from "../utilities/Controller";
 
-export default class WorkController {
-  db: Connection;
+export default class WorkController extends Controller {
   workModel: WorkModel;
 
   constructor(db: Connection) {
-    this.db = db;
+    super(db);
     this.workModel = new WorkModel(this.db);
 
     this.createWork = this.createWork.bind(this);
