@@ -88,7 +88,7 @@ export default class UserController extends Controller {
         subscription_plan: subscription_plan ?? 'free',
         quote_infos,
       });
-      res.status(200).json({ ...user, password: undefined });
+      res.status(201).json({ ...user, password: undefined });
     } catch (e) {
       UserController.handleError(e, res);
     }
