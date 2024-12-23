@@ -85,7 +85,7 @@ export default class UserController extends Controller {
         tva_number,
         company_type,
         account_status: "waiting",
-        subscription_plan: subscription_plan ?? 'free',
+        subscription_plan: subscription_plan ?? "free",
         quote_infos,
       });
       res.status(201).json({ ...user, password: undefined });
@@ -116,22 +116,27 @@ export default class UserController extends Controller {
     if (req.body.password) {
       password = await bcrypt.hash(req.body.password, 10);
     }
+    const userToSave = {
+      email,
+      password,
+      first_name,
+      last_name,
+      company_name,
+      company_address,
+      siret,
+      ape_code,
+      rcs_code,
+      tva_number,
+      company_type,
+      subscription_plan,
+      quote_infos,
+    };
+    if(!password) {
+      delete userToSave.password;
+    }
+    
     try {
-      const user = await this.userModel.update(id, {
-        email,
-        password,
-        first_name,
-        last_name,
-        company_name,
-        company_address,
-        siret,
-        ape_code,
-        rcs_code,
-        tva_number,
-        company_type,
-        subscription_plan,
-        quote_infos,
-      });
+      const user = await this.userModel.update(id, userToSave);
       res.status(200).json({ ...user, password: undefined });
     } catch (e) {
       UserController.handleError(e, res);
