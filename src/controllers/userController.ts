@@ -85,7 +85,7 @@ export default class UserController extends Controller {
         tva_number,
         company_type,
         account_status: "waiting",
-        subscription_plan,
+        subscription_plan: subscription_plan ?? 'free',
         quote_infos,
       });
       res.status(200).json({ ...user, password: undefined });
