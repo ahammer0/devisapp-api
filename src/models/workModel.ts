@@ -50,7 +50,7 @@ export default class WorkModel extends Model {
   async updateByidByUserId(
     id: number,
     userId: number,
-    work: Partial<Omit<work, "id">>
+    work: Partial<Omit<work, "id"|"user_id">>
   ): Promise<work | null> {
     const res = await this.db.query(
       "UPDATE works SET ? WHERE id = ? AND user_id = ?",
