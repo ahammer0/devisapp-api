@@ -154,10 +154,15 @@ export default class UserController extends Controller {
       if (!process.env.JWT_SECRET) {
         throw new Error("JWT_SECRET is not defined in env");
       }
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET
-      ) as JwtPayload & { role: string; id: number };
+      let decoded: JwtPayload & { role: string; id: number };
+      try {
+        decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET
+        ) as JwtPayload & { role: string; id: number };
+      } catch (e) {
+        throw new ErrorResponse("Unauthorized: Invalid token", 401);
+      }
       if (
         !(
           "role" in decoded &&
@@ -178,12 +183,12 @@ export default class UserController extends Controller {
       //Building response
       const response = {
         role: decoded.role,
-        userInfos: user
-      }
-      
+        userInfos: user,
+      };
+
       res.status(200).json(response);
     } catch (e) {
-      console.log(e)
+      console.log(e);
       UserController.handleError(e, res);
     }
   }
