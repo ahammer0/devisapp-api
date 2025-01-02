@@ -11,13 +11,14 @@ export default abstract class Controller {
     const env = process.env.ENV;
     if (env === undefined || !(env === "dev" || env === "prod")) {
       throw new Error(
-        "ENV is not defined in .env file, it must be dev or prod"
+        "ENV is not defined in .env file, it must be dev or prod",
       );
     }
 
     if (err instanceof ErrorResponse) {
       res.status(err.code).json({ message: err.message });
-      if (env === "dev") console.error("\x1b[31m"+"Error: " + err.message+"\x1b[0m");
+      if (env === "dev")
+        console.error("\x1b[31m" + "Error: " + err.message + "\x1b[0m");
       return;
     }
     if (typeof err === "string") {
@@ -26,7 +27,7 @@ export default abstract class Controller {
     }
 
     if (env === "dev") {
-      console.error("\x1b[31m"+err+"\x1b[0m");
+      console.error("\x1b[31m" + err + "\x1b[0m");
       res.status(500).json({ err });
       return;
     } else {

@@ -39,7 +39,7 @@ export default class UserModel extends Model {
   async getByEmail(email: string): Promise<user | null> {
     const res = await this.db.query(
       "SELECT * FROM users WHERE email = ?",
-      email
+      email,
     );
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
@@ -49,7 +49,7 @@ export default class UserModel extends Model {
 
   async update(
     id: number,
-    user: Partial<Omit<user, "id">>
+    user: Partial<Omit<user, "id">>,
   ): Promise<user | null> {
     const res = await this.db.query("UPDATE users SET ? WHERE id = ?", [
       user,

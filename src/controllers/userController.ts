@@ -146,7 +146,7 @@ export default class UserController extends Controller {
   async checkToken(req: Request, res: Response) {
     try {
       const token = req.headers.authorization?.split(" ")[1];
-      
+
       //Token validation
       if (!token) {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
@@ -156,10 +156,10 @@ export default class UserController extends Controller {
       }
       let decoded: JwtPayload & { role: string; id: number };
       try {
-        decoded = jwt.verify(
-          token,
-          process.env.JWT_SECRET
-        ) as JwtPayload & { role: string; id: number };
+        decoded = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload & {
+          role: string;
+          id: number;
+        };
       } catch (e) {
         throw new ErrorResponse("Unauthorized: Invalid token", 401);
       }

@@ -3,6 +3,13 @@ import Model from "../utilities/Model";
 import ErrorResponse from "../utilities/ErrorResponse";
 
 export default class QuoteModel extends Model {
+  //////////////////////////////////////////
+  //                                      //
+  //     INSTANCE METHODS                 //
+  //                                      //
+  //////////////////////////////////////////
+
+  //////        CREATE        //////
   async create(quote: full_quote): Promise<full_quote | null> {
     //base quote
     const { quote_elements, quote_medias, ...base_quote } = quote;
@@ -39,13 +46,21 @@ export default class QuoteModel extends Model {
 
     return await this.getById(newQuoteId);
   }
+
+  //////        READ          //////
+  //////////////////////////////////////////
   async getAllByUserId(id: number): Promise<full_quote[] | null> {
     const res = await this.db.query(
-      "SELECT * FROM quotes WHERE user_id = ?",
+      "SELECT id FROM quotes WHERE user_id = ?",
       id
     );
-    return res;
+    const resFinal = res.map((item: { id: number }) =>
+      this.getByIdByUserId(item.id, id)
+    );
+    return Promise.all(resFinal);
   }
+
+  //////////////////////////////////////////
   async getByIdByUserId(
     id: number,
     userId: number
@@ -71,21 +86,25 @@ export default class QuoteModel extends Model {
     return recontructed_quote;
   }
 
+  //////////////////////////////////////////
   async getById(id: number): Promise<full_quote | null> {
-      const res = await this.db.query("SELECT * FROM quotes WHERE id = ?", id);
-      if (res.length === 0) {
-        throw new ErrorResponse("No results ",204);
-      }
-      const quote_elements = await this.db.query(
-        "SELECT * FROM quote_elements WHERE quote_id = ?",
-        id
-      );
-      const quote_medias = await this.db.query(
-        "SELECT * FROM quote_medias WHERE quote_id = ?",
-        id
-      );
-      return { ...res[0], quote_elements, quote_medias };
+    const res = await this.db.query("SELECT * FROM quotes WHERE id = ?", id);
+    if (res.length === 0) {
+      throw new ErrorResponse("No results ", 204);
+    }
+    const quote_elements = await this.db.query(
+      "SELECT * FROM quote_elements WHERE quote_id = ?",
+      id
+    );
+    const quote_medias = await this.db.query(
+      "SELECT * FROM quote_medias WHERE quote_id = ?",
+      id
+    );
+    return { ...res[0], quote_elements, quote_medias };
   }
+
+  //////        UPDATE        //////
+  //////////////////////////////////////////
   async updateByidByUserId(
     id: number,
     userId: number,
@@ -98,57 +117,77 @@ export default class QuoteModel extends Model {
     const sql_quote_medias =
       "UPDATE quote_medias SET ? WHERE id = ? AND quote_id = ?";
 
-      const res = await this.db.query(sql_base, [base_quote, id, userId]);
-      if (res.affectedRows !== 1) {
-        throw new ErrorResponse("Could not update quote, no matching id for user", 400);
-      }
+    const res = await this.db.query(sql_base, [base_quote, id, userId]);
+    if (res.affectedRows !== 1) {
+      throw new ErrorResponse(
+        "Could not update quote, no matching id for user",
+        400
+      );
+    }
 
-      //handling quote_elements and quote_medias
-      if (quote_elements && quote_elements.length > 0) {
-        const res_elements = await Promise.allSettled(
-          quote_elements.map((el) => {
-            const { quote_id, ...newEl } = el;
-            return this.db.query(sql_quote_elements, [newEl, el.id, id]);
-          })
+    //handling quote_elements and quote_medias
+    if (quote_elements && quote_elements.length > 0) {
+      const res_elements = await Promise.allSettled(
+        quote_elements.map((el) => {
+          const { quote_id, ...newEl } = el;
+          return this.db.query(sql_quote_elements, [newEl, el.id, id]);
+        })
+      );
+
+      if (
+        res_elements.filter(
+          (el) => el.status === "rejected" || el.value.affectedRows !== 1
+        ).length > 0
+      ) {
+        throw new ErrorResponse(
+          "Could not update quote elements for this quote",
+          400
         );
-
-        if (
-          res_elements.filter(
-            (el) => el.status === "rejected" || el.value.affectedRows !== 1
-          ).length > 0
-        ) {
-          throw new ErrorResponse("Could not update quote elements for this quote", 400);
-        }
       }
+    }
 
-      if (quote_medias && quote_medias.length > 0) {
-        const res_medias = await Promise.allSettled(
-          quote_medias.map((el) => {
-            const { quote_id, ...newEl } = el;
-            return this.db.query(sql_quote_medias, [newEl, el.id, id]);
-          })
+    if (quote_medias && quote_medias.length > 0) {
+      const res_medias = await Promise.allSettled(
+        quote_medias.map((el) => {
+          const { quote_id, ...newEl } = el;
+          return this.db.query(sql_quote_medias, [newEl, el.id, id]);
+        })
+      );
+
+      if (
+        res_medias.filter(
+          (el) => el.status === "rejected" || el.value.affectedRows !== 1
+        ).length > 0
+      ) {
+        throw new ErrorResponse(
+          "Could not update quote medias for this quote",
+          400
         );
-
-        if (
-          res_medias.filter(
-            (el) => el.status === "rejected" || el.value.affectedRows !== 1
-          ).length > 0
-        ) {
-          throw new ErrorResponse("Could not update quote medias for this quote", 400);
-        }
       }
+    }
 
-      return await this.getByIdByUserId(id, userId);
+    return await this.getByIdByUserId(id, userId);
   }
+
+  //////        DELETE        //////
+  //////////////////////////////////////////
   async deleteByIdByUserId(id: number, userId: number): Promise<boolean> {
     const sql = "DELETE FROM quotes WHERE id = ? AND user_id = ?";
-      const res = await this.db.query(sql, [id, userId]);
-      if (res.affectedRows !== 1) {
-        throw new ErrorResponse("Could not delete quote, no matching id for user", 400);
-      }
-      return true;
+    const res = await this.db.query(sql, [id, userId]);
+    if (res.affectedRows !== 1) {
+      throw new ErrorResponse(
+        "Could not delete quote, no matching id for user",
+        400
+      );
+    }
+    return true;
   }
 
+  //////////////////////////////////////////
+  //                                      //
+  //     STATIC METHODS                   //
+  //                                      //
+  //////////////////////////////////////////
   static extractQuoteElementsFromSqlJoin(
     joinResponse: (quote &
       quote_media &
@@ -174,6 +213,7 @@ export default class QuoteModel extends Model {
     return quote_elements;
   }
 
+  //////////////////////////////////////////
   static extractQuoteMediasFromSqlJoin(
     joinResponse: (quote &
       quote_media &
@@ -197,6 +237,7 @@ export default class QuoteModel extends Model {
     return quote_medias;
   }
 
+  //////////////////////////////////////////
   static extractQuoteBaseFromSqlJoin(
     joinResponse: quote &
       quote_media &

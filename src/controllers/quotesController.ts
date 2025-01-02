@@ -3,8 +3,7 @@ import { Connection } from "promise-mysql";
 import { Request, Response } from "express";
 import Controller from "../utilities/Controller";
 
-export default class QuotesController extends Controller
-{
+export default class QuotesController extends Controller {
   quoteModel: QuoteModel;
 
   constructor(db: Connection) {

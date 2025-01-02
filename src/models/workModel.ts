@@ -22,7 +22,7 @@ export default class WorkModel extends Model {
   async getAllByUserId(id: number): Promise<work[] | null> {
     const res = await this.db.query(
       "SELECT * FROM works WHERE user_id = ?",
-      id
+      id,
     );
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
@@ -40,7 +40,7 @@ export default class WorkModel extends Model {
   async getByIdByUserId(id: number, user_id: number): Promise<work | null> {
     const res = await this.db.query(
       "SELECT * FROM works WHERE id = ? AND user_id = ?",
-      [id, user_id]
+      [id, user_id],
     );
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
@@ -50,11 +50,11 @@ export default class WorkModel extends Model {
   async updateByidByUserId(
     id: number,
     userId: number,
-    work: Partial<Omit<work, "id"|"user_id">>
+    work: Partial<Omit<work, "id" | "user_id">>,
   ): Promise<work | null> {
     const res = await this.db.query(
       "UPDATE works SET ? WHERE id = ? AND user_id = ?",
-      [work, id, userId]
+      [work, id, userId],
     );
     if (res.affectedRows !== 1) {
       throw new ErrorResponse("Could not update work", 400);
@@ -65,11 +65,11 @@ export default class WorkModel extends Model {
 
   async deleteByIdByUserId(
     id: number,
-    userId: number
+    userId: number,
   ): Promise<boolean | null> {
     const res = await this.db.query(
       "DELETE FROM works WHERE id = ? AND user_id = ?",
-      [id, userId]
+      [id, userId],
     );
     if (res.affectedRows !== 1) {
       throw new ErrorResponse("Could not delete work", 400);
