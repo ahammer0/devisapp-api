@@ -127,12 +127,56 @@ export default class QuoteModel extends Model {
 
     //handling quote_elements and quote_medias
     if (quote_elements && quote_elements.length > 0) {
-      const res_elements = await Promise.allSettled(
-        quote_elements.map((el) => {
-          const { quote_id, ...newEl } = el;
-          return this.db.query(sql_quote_elements, [newEl, el.id, id]);
-        })
+      //extracting quote_element to create and to update
+      let quote_elements_to_create: quote_element[] = [];
+      let quote_elements_to_update: quote_element[] = [];
+
+      quote_elements.map((el) => {
+        if (el.id) {
+          quote_elements_to_update.push(el);
+        } else {
+          quote_elements_to_create.push(el);
+        }
+      });
+
+      // deleting quote_element not in request
+      const quote_elements_ids = quote_elements.reduce((acc,el) => {
+        if (!el.id) {
+          return acc;
+        }
+        if (typeof el.id === "string") {
+          const t = parseInt(el.id);
+          if (isNaN(t)) {
+            throw new ErrorResponse("id of quote_element is not valid", 400);
+          }
+          return [...acc,t];
+        }
+        if (typeof el.id !== "number") {
+          throw new ErrorResponse("id of quote_element is not valid", 400);
+        }
+        return [...acc,el.id];
+      },[] as number[]);
+
+      const sql_quote_elements_delete =
+        "DELETE FROM quote_elements WHERE id NOT IN (?) AND quote_id = ?";
+      await this.db.query(sql_quote_elements_delete, [quote_elements_ids, id]);
+
+      //creating quote_elements
+      const res_create = quote_elements_to_create.map((el) =>
+        this.db.query("INSERT INTO quote_elements SET ? ,quote_id= ?", [el,id])
       );
+
+      //updating quote_elements
+      const res_update = quote_elements_to_update.map((el) => {
+        const { quote_id, ...newEl } = el;
+        return this.db.query(sql_quote_elements, [newEl, el.id, id]);
+      });
+
+      //awaiting create and update promises
+      const res_elements = await Promise.allSettled([
+        ...res_create,
+        ...res_update,
+      ]);
 
       if (
         res_elements.filter(
