@@ -18,7 +18,7 @@ export default class QuoteModel extends Model {
   //////        CREATE        //////
   async create(quote: quote_full_create): Promise<full_quote | null> {
     //base quote
-    const { customer, quote_elements, quote_medias, ...base_quote } = quote;
+    const { customer, quote_elements, quote_medias:_a, ...base_quote } = quote;
     let recordedItem: full_quote | null = null;
 
     //if new customer record it
@@ -215,8 +215,8 @@ export default class QuoteModel extends Model {
     //handling quote_elements and quote_medias
     if (quote_elements && quote_elements.length > 0) {
       //extracting quote_element to create and to update
-      let quote_elements_to_create: quote_element[] = [];
-      let quote_elements_to_update: quote_element[] = [];
+      const quote_elements_to_create: quote_element[] = [];
+      const quote_elements_to_update: quote_element[] = [];
 
       quote_elements.map((el) => {
         if (el.id) {
@@ -258,7 +258,7 @@ export default class QuoteModel extends Model {
 
       //updating quote_elements
       const res_update = quote_elements_to_update.map((el) => {
-        const { quote_id, ...newEl } = el;
+        const { quote_id:_, ...newEl } = el;
         return this.db.query(sql_quote_elements, [newEl, el.id, id]);
       });
 
@@ -283,7 +283,7 @@ export default class QuoteModel extends Model {
     if (quote_medias && quote_medias.length > 0) {
       const res_medias = await Promise.allSettled(
         quote_medias.map((el) => {
-          const { quote_id, ...newEl } = el;
+          const { quote_id:_, ...newEl } = el;
           return this.db.query(sql_quote_medias, [newEl, el.id, id]);
         }),
       );

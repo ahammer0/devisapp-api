@@ -1,7 +1,10 @@
 import QuoteModel from "../models/quoteModel";
 import { Connection } from "promise-mysql";
-import { Request, Response } from "express";
+import { Response } from "express";
 import Controller from "../utilities/Controller";
+import {ReqWithId} from "../types/misc";
+import ErrorResponse from "../utilities/ErrorResponse";
+import {quote_full_create} from "../types/quotes";
 
 export default class QuotesController extends Controller {
   quoteModel: QuoteModel;
@@ -16,11 +19,14 @@ export default class QuotesController extends Controller {
     this.editQuote = this.editQuote.bind(this);
     this.deleteQuote = this.deleteQuote.bind(this);
   }
-  async addQuote(req: Request, res: Response) {
-    const newQuote: any = req.body;
-    newQuote.expires_at = new Date(newQuote.expires_at);
+  async addQuote(req: ReqWithId, res: Response) {
+    if(!req.id){
+      throw new ErrorResponse("Unauthorized: Token not found", 401);
+    }
 
-    //@ts-ignore
+    const newQuote:quote_full_create = req.body;
+    newQuote.expires_at = new Date(newQuote.expires_at??new Date()).toISOString();
+
     const id = req.id;
     newQuote.user_id = id;
     try {
@@ -30,8 +36,10 @@ export default class QuotesController extends Controller {
       QuotesController.handleError(e, res);
     }
   }
-  async getAllQuotes(req: Request, res: Response) {
-    //@ts-ignore
+  async getAllQuotes(req: ReqWithId, res: Response) {
+    if(!req.id){
+      throw new ErrorResponse("Unauthorized: Token not found", 401);
+    }
     const id = req.id;
     try {
       const quotes = await this.quoteModel.getAllByUserId(id);
@@ -40,8 +48,10 @@ export default class QuotesController extends Controller {
       QuotesController.handleError(e, res);
     }
   }
-  async getOneQuote(req: Request, res: Response) {
-    //@ts-ignore
+  async getOneQuote(req: ReqWithId, res: Response) {
+    if(!req.id){
+      throw new ErrorResponse("Unauthorized: Token not found", 401);
+    }
     const userId = req.id;
     const quoteId = parseInt(req.params.id);
     try {
@@ -52,8 +62,10 @@ export default class QuotesController extends Controller {
     }
   }
 
-  async editQuote(req: Request, res: Response) {
-    //@ts-ignore
+  async editQuote(req: ReqWithId, res: Response) {
+    if(!req.id){
+      throw new ErrorResponse("Unauthorized: Token not found", 401);
+    }
     const userId = req.id;
     const quoteId = parseInt(req.params.id);
     const quote = req.body;
@@ -72,8 +84,10 @@ export default class QuotesController extends Controller {
       QuotesController.handleError(e, res);
     }
   }
-  async deleteQuote(req: Request, res: Response) {
-    //@ts-ignore
+  async deleteQuote(req: ReqWithId, res: Response) {
+    if(!req.id){
+      throw new ErrorResponse("Unauthorized: Token not found", 401);
+    }
     const userId = req.id;
     const quoteId = parseInt(req.params.id);
     try {

@@ -9,8 +9,8 @@ const adminRoutes = (app: Express, db: Connection) => {
   app.post("/admin/login", controller.login);
 
   const router = express.Router();
-  router.get("/users/all", controller.getAllUsers),
-    router.get("/users/:id", controller.getOneUser);
+  router.get("/users/all", controller.getAllUsers);
+  router.get("/users/:id", controller.getOneUser);
   router.put("/users/:id", controller.editUser);
   router.delete("/users/:id", controller.deleteUser);
 

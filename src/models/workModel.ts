@@ -16,7 +16,7 @@ export default class WorkModel extends Model {
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
     }
-    return [...res.map((item: any) => ({ ...item }))];
+    return [...res.map((item:work) => ({ ...item }))];
   }
 
   async getAllByUserId(id: number): Promise<work[] | null> {
@@ -27,7 +27,7 @@ export default class WorkModel extends Model {
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
     }
-    return [...res.map((item: any) => ({ ...item }))];
+    return [...res.map((item: work) => ({ ...item }))];
   }
   async getById(id: number): Promise<work | null> {
     const res = await this.db.query("SELECT * FROM works WHERE id = ?", [id]);

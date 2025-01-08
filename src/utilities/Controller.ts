@@ -7,11 +7,11 @@ export default abstract class Controller {
   constructor(db: Connection) {
     this.db = db;
   }
-  static handleError(err: any, res: Response): void {
+  static handleError(err: unknown, res: Response): void {
     const env = process.env.ENV;
     if (env === undefined || !(env === "dev" || env === "prod")) {
       throw new Error(
-        "ENV is not defined in .env file, it must be dev or prod",
+        "ENV is not defined in .env file, it must be dev or prod"
       );
     }
 

@@ -11,8 +11,13 @@ export default class UserModel extends Model {
       }
       const recordedItem = await this.getById(res.insertId);
       return recordedItem;
-    } catch (e: any) {
-      if (e.code === "ER_DUP_ENTRY") {
+    } catch (e: unknown) {
+      if (
+        e &&
+        typeof e === "object" &&
+        "code" in e &&
+        e.code === "ER_DUP_ENTRY"
+      ) {
         throw new ErrorResponse("Email already exists", 400);
       } else {
         throw e;
@@ -25,7 +30,7 @@ export default class UserModel extends Model {
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
     }
-    return [...res.map((item: any) => ({ ...item }))];
+    return [...res.map((item: user) => ({ ...item }))];
   }
 
   async getById(id: number): Promise<user | null> {
@@ -39,7 +44,7 @@ export default class UserModel extends Model {
   async getByEmail(email: string): Promise<user | null> {
     const res = await this.db.query(
       "SELECT * FROM users WHERE email = ?",
-      email,
+      email
     );
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
@@ -49,7 +54,7 @@ export default class UserModel extends Model {
 
   async update(
     id: number,
-    user: Partial<Omit<user, "id">>,
+    user: Partial<Omit<user, "id">>
   ): Promise<user | null> {
     const res = await this.db.query("UPDATE users SET ? WHERE id = ?", [
       user,

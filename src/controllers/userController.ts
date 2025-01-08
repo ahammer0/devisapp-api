@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import Controller from "../utilities/Controller";
 import ErrorResponse from "../utilities/ErrorResponse";
+import {ReqWithId} from "../types/misc";
 
 export default class UserController extends Controller {
   userModel: UserModel;
@@ -96,8 +97,10 @@ export default class UserController extends Controller {
     }
   }
 
-  async updateUser(req: Request, res: Response) {
-    //@ts-ignore
+  async updateUser(req: ReqWithId, res: Response) {
+    if(!req.id){
+      throw new ErrorResponse("Unauthorized: Token not found", 401);
+    }
     const id: number = req.id;
     const {
       email,
@@ -140,7 +143,9 @@ export default class UserController extends Controller {
     try {
       const user = await this.userModel.update(id, userToSave);
       res.status(200).json({ ...user, password: undefined });
-    } catch (e) {}
+    } catch (e) {
+      UserController.handleError(e, res);
+    }
   }
 
   async checkToken(req: Request, res: Response) {
@@ -160,7 +165,7 @@ export default class UserController extends Controller {
           role: string;
           id: number;
         };
-      } catch (e) {
+      } catch{
         throw new ErrorResponse("Unauthorized: Invalid token", 401);
       }
       if (
