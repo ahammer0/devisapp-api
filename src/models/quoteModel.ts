@@ -1,4 +1,10 @@
-import { quote, quote_media, quote_element, full_quote } from "../types/quotes";
+import {
+  quote,
+  quote_media,
+  quote_element,
+  full_quote,
+  quote_full_create,
+} from "../types/quotes";
 import Model from "../utilities/Model";
 import ErrorResponse from "../utilities/ErrorResponse";
 
@@ -10,11 +16,27 @@ export default class QuoteModel extends Model {
   //////////////////////////////////////////
 
   //////        CREATE        //////
-  async create(quote: full_quote): Promise<full_quote | null> {
+  async create(quote: quote_full_create): Promise<full_quote | null> {
     //base quote
-    const { quote_elements, quote_medias, ...base_quote } = quote;
+    const { customer, quote_elements, quote_medias, ...base_quote } = quote;
     let recordedItem: full_quote | null = null;
 
+    //if new customer record it
+    if (customer) {
+      const insertCustomerRes = await this.db.query(
+        "INSERT INTO customers SET ?",
+        customer,
+      );
+      if (insertCustomerRes.affectedRows !== 1) {
+        throw new ErrorResponse(
+          "Could not insert customer when creating quote",
+          400,
+        );
+      }
+      base_quote.customer_id = insertCustomerRes.insertId;
+    }
+
+    // recording base quote
     const res = await this.db.query("INSERT INTO quotes SET ?", base_quote);
     if (res.affectedRows !== 1) {
       throw new ErrorResponse("Could not insert quote_base", 400);
@@ -27,23 +49,26 @@ export default class QuoteModel extends Model {
     }
 
     //quote_elements
-    const newQuote_elements = quote.quote_elements.map((el) => ({
-      ...el,
-      quote_id: newQuoteId,
-    }));
+    if (quote_elements) {
+      const newQuote_elements = quote_elements.map((el) => ({
+        ...el,
+        quote_id: newQuoteId,
+      }));
 
-    const res2 = await Promise.allSettled(
-      newQuote_elements.map((el) =>
-        this.db.query("INSERT INTO quote_elements SET ?", el)
-      )
-    );
-    if (res2.filter((el) => el.status === "rejected").length > 0) {
-      throw new ErrorResponse(
-        "Could not insert quote_elements after inserting quote",
-        400
+      const res2 = await Promise.allSettled(
+        newQuote_elements.map((el) =>
+          this.db.query("INSERT INTO quote_elements SET ?", el),
+        ),
       );
+      if (res2.filter((el) => el.status === "rejected").length > 0) {
+        throw new ErrorResponse(
+          "Could not insert quote_elements after inserting quote",
+          400,
+        );
+      }
     }
 
+    //returning created quote
     return await this.getById(newQuoteId);
   }
 
@@ -52,10 +77,10 @@ export default class QuoteModel extends Model {
   async getAllByUserId(id: number): Promise<full_quote[] | null> {
     const res = await this.db.query(
       "SELECT id FROM quotes WHERE user_id = ?",
-      id
+      id,
     );
     const resFinal = res.map((item: { id: number }) =>
-      this.getByIdByUserId(item.id, id)
+      this.getByIdByUserId(item.id, id),
     );
     return Promise.all(resFinal);
   }
@@ -63,22 +88,48 @@ export default class QuoteModel extends Model {
   //////////////////////////////////////////
   async getByIdByUserId(
     id: number,
-    userId: number
+    userId: number,
   ): Promise<full_quote | null> {
     const res = await this.db.query(
-      `SELECT *, quotes.id as id, quotes.id as quote_id, quote_elements.id as quote_element_id, quote_medias.id as quote_media_id FROM quotes 
+      `SELECT *, 
+        quotes.id as id, 
+        quotes.id as quote_id,
+        quotes.user_id as user_id,
+        quote_elements.id as quote_element_id, 
+        quote_medias.id as quote_media_id,
+        customers.id as customer_id,
+        customers.user_id as customer_user_id
+
+        FROM quotes 
+
         LEFT JOIN quote_elements ON quotes.id = quote_elements.quote_id 
         LEFT JOIN quote_medias ON quotes.id = quote_medias.quote_id 
+        LEFT JOIN customers ON quotes.customer_id = customers.id
         WHERE quotes.id = ? and quotes.user_id = ?`,
-      [id, userId]
+      [id, userId],
     );
 
     const quote_elements = QuoteModel.extractQuoteElementsFromSqlJoin(res);
     const quote_medias = QuoteModel.extractQuoteMediasFromSqlJoin(res);
     const quote_base = QuoteModel.extractQuoteBaseFromSqlJoin(res[0]);
+    let customer = null;
+    if (res[0].customer_id) {
+      customer = {
+        id: res[0].customer_id,
+        user_id: res[0].user_id,
+        first_name: res[0].first_name,
+        last_name: res[0].last_name,
+        street: res[0].street,
+        city: res[0].city,
+        zip: res[0].zip,
+        phone: res[0].phone,
+        email: res[0].email,
+      };
+    }
 
     const recontructed_quote: full_quote = {
       ...quote_base,
+      customer,
       quote_elements,
       quote_medias,
     };
@@ -94,11 +145,11 @@ export default class QuoteModel extends Model {
     }
     const quote_elements = await this.db.query(
       "SELECT * FROM quote_elements WHERE quote_id = ?",
-      id
+      id,
     );
     const quote_medias = await this.db.query(
       "SELECT * FROM quote_medias WHERE quote_id = ?",
-      id
+      id,
     );
     return { ...res[0], quote_elements, quote_medias };
   }
@@ -108,20 +159,56 @@ export default class QuoteModel extends Model {
   async updateByidByUserId(
     id: number,
     userId: number,
-    quote: Partial<Omit<full_quote, "id">>
+    quote: Partial<Omit<full_quote, "id">>,
   ): Promise<full_quote | null> {
-    const { quote_elements, quote_medias, ...base_quote } = quote;
+    const { customer, quote_elements, quote_medias, ...base_quote } = quote;
     const sql_base = "UPDATE quotes SET ? WHERE id = ? AND user_id = ?";
     const sql_quote_elements =
       "UPDATE quote_elements SET ? WHERE id = ? AND quote_id = ?";
     const sql_quote_medias =
       "UPDATE quote_medias SET ? WHERE id = ? AND quote_id = ?";
 
-    const res = await this.db.query(sql_base, [base_quote, id, userId]);
+    //handling customer
+    let customerId = customer?.id;
+    if (customerId) {
+      const resUpdateCustomer = await this.db.query(
+        "UPDATE customers SET ? WHERE id = ? AND user_id = ?",
+        [customer, customerId, userId],
+      );
+      if (resUpdateCustomer.affectedRows !== 1) {
+        throw new ErrorResponse(
+          "Could not update customer when updating quote",
+          400,
+        );
+      }
+    } else {
+      const customerToInsert = { ...customer };
+      delete customerToInsert.id;
+      delete customerToInsert.user_id;
+
+      const resInsertCustomer = await this.db.query(
+        "INSERT INTO customers SET ?,user_id=?",
+        [customerToInsert, userId],
+      );
+      if (resInsertCustomer.affectedRows !== 1) {
+        throw new ErrorResponse(
+          "Could not insert customer when updating quote",
+          400,
+        );
+      }
+      customerId = resInsertCustomer.insertId;
+    }
+
+    //handling base quote
+    const res = await this.db.query(sql_base, [
+      { ...base_quote, customer_id: customerId },
+      id,
+      userId,
+    ]);
     if (res.affectedRows !== 1) {
       throw new ErrorResponse(
         "Could not update quote, no matching id for user",
-        400
+        400,
       );
     }
 
@@ -140,7 +227,7 @@ export default class QuoteModel extends Model {
       });
 
       // deleting quote_element not in request
-      const quote_elements_ids = quote_elements.reduce((acc,el) => {
+      const quote_elements_ids = quote_elements.reduce((acc, el) => {
         if (!el.id) {
           return acc;
         }
@@ -149,13 +236,13 @@ export default class QuoteModel extends Model {
           if (isNaN(t)) {
             throw new ErrorResponse("id of quote_element is not valid", 400);
           }
-          return [...acc,t];
+          return [...acc, t];
         }
         if (typeof el.id !== "number") {
           throw new ErrorResponse("id of quote_element is not valid", 400);
         }
-        return [...acc,el.id];
-      },[] as number[]);
+        return [...acc, el.id];
+      }, [] as number[]);
 
       const sql_quote_elements_delete =
         "DELETE FROM quote_elements WHERE id NOT IN (?) AND quote_id = ?";
@@ -163,7 +250,10 @@ export default class QuoteModel extends Model {
 
       //creating quote_elements
       const res_create = quote_elements_to_create.map((el) =>
-        this.db.query("INSERT INTO quote_elements SET ? ,quote_id= ?", [el,id])
+        this.db.query("INSERT INTO quote_elements SET ? ,quote_id= ?", [
+          el,
+          id,
+        ]),
       );
 
       //updating quote_elements
@@ -180,12 +270,12 @@ export default class QuoteModel extends Model {
 
       if (
         res_elements.filter(
-          (el) => el.status === "rejected" || el.value.affectedRows !== 1
+          (el) => el.status === "rejected" || el.value.affectedRows !== 1,
         ).length > 0
       ) {
         throw new ErrorResponse(
           "Could not update quote elements for this quote",
-          400
+          400,
         );
       }
     }
@@ -195,17 +285,17 @@ export default class QuoteModel extends Model {
         quote_medias.map((el) => {
           const { quote_id, ...newEl } = el;
           return this.db.query(sql_quote_medias, [newEl, el.id, id]);
-        })
+        }),
       );
 
       if (
         res_medias.filter(
-          (el) => el.status === "rejected" || el.value.affectedRows !== 1
+          (el) => el.status === "rejected" || el.value.affectedRows !== 1,
         ).length > 0
       ) {
         throw new ErrorResponse(
           "Could not update quote medias for this quote",
-          400
+          400,
         );
       }
     }
@@ -221,7 +311,7 @@ export default class QuoteModel extends Model {
     if (res.affectedRows !== 1) {
       throw new ErrorResponse(
         "Could not delete quote, no matching id for user",
-        400
+        400,
       );
     }
     return true;
@@ -235,7 +325,7 @@ export default class QuoteModel extends Model {
   static extractQuoteElementsFromSqlJoin(
     joinResponse: (quote &
       quote_media &
-      quote_element & { quote_media_id: number; quote_element_id: number })[]
+      quote_element & { quote_media_id: number; quote_element_id: number })[],
   ): quote_element[] {
     const quote_elements = joinResponse.reduce(
       (acc: quote_element[], el: (typeof joinResponse)[0]) => {
@@ -252,7 +342,7 @@ export default class QuoteModel extends Model {
         }
         return acc;
       },
-      []
+      [],
     );
     return quote_elements;
   }
@@ -261,7 +351,7 @@ export default class QuoteModel extends Model {
   static extractQuoteMediasFromSqlJoin(
     joinResponse: (quote &
       quote_media &
-      quote_element & { quote_media_id: number; quote_element_id: number })[]
+      quote_element & { quote_media_id: number; quote_element_id: number })[],
   ): quote_media[] {
     const quote_medias = joinResponse.reduce(
       (acc: quote_media[], el: (typeof joinResponse)[0]) => {
@@ -276,7 +366,7 @@ export default class QuoteModel extends Model {
         }
         return acc;
       },
-      []
+      [],
     );
     return quote_medias;
   }
@@ -285,12 +375,13 @@ export default class QuoteModel extends Model {
   static extractQuoteBaseFromSqlJoin(
     joinResponse: quote &
       quote_media &
-      quote_element & { quote_media_id: number; quote_element_id: number }
-  ): quote {
+      quote_element & { quote_media_id: number; quote_element_id: number },
+  ): Omit<quote, "customer_id"> {
     const quote_base = {
       id: joinResponse.quote_id,
       user_id: joinResponse.user_id,
       global_discount: joinResponse.global_discount,
+      name: joinResponse.name,
       general_infos: joinResponse.general_infos,
       status: joinResponse.status,
       expires_at: joinResponse.expires_at,
