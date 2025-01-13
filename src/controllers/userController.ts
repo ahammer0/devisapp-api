@@ -8,6 +8,7 @@ import ErrorResponse from "../utilities/ErrorResponse";
 import { ReqWithId } from "../types/misc";
 import { addCreditRequestBody } from "../types/users";
 import PaymentModel from "../models/paymentModel";
+import { assertDate, isPast } from "../utilities/datesHandlers";
 
 export default class UserController extends Controller {
   userModel: UserModel;
@@ -215,6 +216,12 @@ export default class UserController extends Controller {
           "User id not fount in request object. This Controller has to be preceded by auth middleware",
         );
       }
+      const currentUser = await this.userModel.getById(req.id);
+      if (!currentUser) {
+        throw new Error(
+          `User not found in db, given id :{req.id} should exist`,
+        );
+      }
       // register payment in db
       let amount;
       switch (body.plan) {
@@ -232,9 +239,16 @@ export default class UserController extends Controller {
         amount: amount,
       });
 
-      // update  user's expires_at
-      const newDate = new Date();
+      // creating new date
+      let newDate: Date;
+      if (isPast(currentUser.expires_at)) {
+        newDate = new Date();
+      } else {
+        newDate = assertDate(currentUser.expires_at);
+      }
       newDate.setMonth(newDate.getMonth() + body.plan);
+
+      // update  user's expires_at
       await this.userModel.update(req.id, {
         expires_at: newDate,
         subscription_plan: "paid", // once the user has paid, its account is considered as paid
