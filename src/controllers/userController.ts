@@ -5,19 +5,24 @@ import bcrypt from "bcryptjs";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import Controller from "../utilities/Controller";
 import ErrorResponse from "../utilities/ErrorResponse";
-import {ReqWithId} from "../types/misc";
+import { ReqWithId } from "../types/misc";
+import { addCreditRequestBody } from "../types/users";
+import PaymentModel from "../models/paymentModel";
 
 export default class UserController extends Controller {
   userModel: UserModel;
+  paymentModel: PaymentModel;
 
   constructor(db: Connection) {
     super(db);
     this.userModel = new UserModel(this.db);
+    this.paymentModel = new PaymentModel(this.db);
 
     this.login = this.login.bind(this);
     this.register = this.register.bind(this);
     this.updateUser = this.updateUser.bind(this);
     this.checkToken = this.checkToken.bind(this);
+    this.addAccountCredit = this.addAccountCredit.bind(this);
   }
 
   //TODO refacto to take same time if no email found
@@ -98,7 +103,7 @@ export default class UserController extends Controller {
   }
 
   async updateUser(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     const id: number = req.id;
@@ -165,7 +170,7 @@ export default class UserController extends Controller {
           role: string;
           id: number;
         };
-      } catch{
+      } catch {
         throw new ErrorResponse("Unauthorized: Invalid token", 401);
       }
       if (
@@ -192,6 +197,53 @@ export default class UserController extends Controller {
       };
 
       res.status(200).json(response);
+    } catch (e) {
+      console.log(e);
+      UserController.handleError(e, res);
+    }
+  }
+
+  async addAccountCredit(req: ReqWithId, res: Response) {
+    try {
+      const body = req.body as addCreditRequestBody;
+      // check request conformity
+      if (!body || !(body.plan === 3 || body.plan === 12)) {
+        throw new ErrorResponse("Bad Request", 400);
+      }
+      if (!req.id) {
+        throw new Error(
+          "User id not fount in request object. This Controller has to be preceded by auth middleware",
+        );
+      }
+      // register payment in db
+      let amount;
+      switch (body.plan) {
+        case 3:
+          amount = 30;
+          break;
+        case 12:
+          amount = 100;
+          break;
+        default:
+          throw new Error("amount not registered");
+      }
+      await this.paymentModel.create({
+        user_id: req.id,
+        amount: amount,
+      });
+
+      // update  user's expires_at
+      const newDate = new Date();
+      newDate.setMonth(newDate.getMonth() + body.plan);
+      await this.userModel.update(req.id, {
+        expires_at: newDate,
+        subscription_plan: "paid", // once the user has paid, its account is considered as paid
+      });
+
+      // respond 200 with updated user
+      const user = await this.userModel.getById(req.id);
+      res.status(200).json(user);
+      return;
     } catch (e) {
       console.log(e);
       UserController.handleError(e, res);

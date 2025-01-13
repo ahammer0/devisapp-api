@@ -18,7 +18,7 @@ export default class QuoteModel extends Model {
   //////        CREATE        //////
   async create(quote: quote_full_create): Promise<full_quote | null> {
     //base quote
-    const { customer, quote_elements, quote_medias:_a, ...base_quote } = quote;
+    const { customer, quote_elements, quote_medias: _a, ...base_quote } = quote;
     let recordedItem: full_quote | null = null;
 
     //if new customer record it
@@ -244,9 +244,14 @@ export default class QuoteModel extends Model {
         return [...acc, el.id];
       }, [] as number[]);
 
-      const sql_quote_elements_delete =
-        "DELETE FROM quote_elements WHERE id NOT IN (?) AND quote_id = ?";
-      await this.db.query(sql_quote_elements_delete, [quote_elements_ids, id]);
+      if (quote_elements_ids.length !== 0) {
+        const sql_quote_elements_delete =
+          "DELETE FROM quote_elements WHERE id NOT IN (?) AND quote_id = ?";
+        await this.db.query(sql_quote_elements_delete, [
+          quote_elements_ids,
+          id,
+        ]);
+      }
 
       //creating quote_elements
       const res_create = quote_elements_to_create.map((el) =>
@@ -258,7 +263,7 @@ export default class QuoteModel extends Model {
 
       //updating quote_elements
       const res_update = quote_elements_to_update.map((el) => {
-        const { quote_id:_, ...newEl } = el;
+        const { quote_id: _, ...newEl } = el;
         return this.db.query(sql_quote_elements, [newEl, el.id, id]);
       });
 
@@ -283,7 +288,7 @@ export default class QuoteModel extends Model {
     if (quote_medias && quote_medias.length > 0) {
       const res_medias = await Promise.allSettled(
         quote_medias.map((el) => {
-          const { quote_id:_, ...newEl } = el;
+          const { quote_id: _, ...newEl } = el;
           return this.db.query(sql_quote_medias, [newEl, el.id, id]);
         }),
       );
