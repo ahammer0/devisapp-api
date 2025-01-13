@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import UserModel from "../models/userModel";
 import PaymentModel from "../models/paymentModel";
 import Controller from "../utilities/Controller";
+import ErrorResponse from "../utilities/ErrorResponse";
 
 export default class AdminController extends Controller {
   userModel: UserModel;
@@ -27,6 +28,8 @@ export default class AdminController extends Controller {
 
   async login(req: Request, res: Response) {
     const { key } = req.body;
+    if (!key) throw new ErrorResponse("Bad Request", 400);
+
     const adminKey = process.env.ADMIN_KEY;
     const secret = process.env.JWT_SECRET;
 
@@ -54,7 +57,7 @@ export default class AdminController extends Controller {
   /////              USERS                //////
   /////                                   //////
   //////////////////////////////////////////////
-  async getAllUsers(req: Request, res: Response) {
+  async getAllUsers(_req: Request, res: Response) {
     try {
       const users = await this.userModel.getAll();
       res.status(200).json(users);
@@ -98,7 +101,7 @@ export default class AdminController extends Controller {
   /////              Payments             //////
   /////                                   //////
   //////////////////////////////////////////////
-  async getAllPayments(req: Request, res: Response) {
+  async getAllPayments(_req: Request, res: Response) {
     try {
       const payments = await this.paymentModel.getAll();
       res.status(200).json(payments);
