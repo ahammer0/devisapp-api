@@ -3,7 +3,7 @@ import Model from "../utilities/Model";
 import ErrorResponse from "../utilities/ErrorResponse";
 
 export default class UserModel extends Model {
-  async create(data: userCreate): Promise<user | null> {
+  async create(data: userCreate): Promise<user> {
     try {
       const res = await this.db.query("INSERT INTO users SET ?", data);
       if (res.affectedRows !== 1) {
@@ -25,7 +25,7 @@ export default class UserModel extends Model {
     }
   }
 
-  async getAll(): Promise<user[] | null> {
+  async getAll(): Promise<user[]> {
     const res = await this.db.query("SELECT * FROM users");
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
@@ -33,7 +33,7 @@ export default class UserModel extends Model {
     return [...res.map((item: user) => ({ ...item }))];
   }
 
-  async getById(id: number): Promise<user | null> {
+  async getById(id: number): Promise<user> {
     const res = await this.db.query("SELECT * FROM users WHERE id = ?", id);
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
@@ -41,10 +41,10 @@ export default class UserModel extends Model {
     return { ...res[0] };
   }
 
-  async getByEmail(email: string): Promise<user | null> {
+  async getByEmail(email: string): Promise<user> {
     const res = await this.db.query(
       "SELECT * FROM users WHERE email = ?",
-      email
+      email,
     );
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
@@ -52,10 +52,7 @@ export default class UserModel extends Model {
     return { ...res[0] };
   }
 
-  async update(
-    id: number,
-    user: Partial<Omit<user, "id">>
-  ): Promise<user | null> {
+  async update(id: number, user: Partial<Omit<user, "id">>): Promise<user> {
     const res = await this.db.query("UPDATE users SET ? WHERE id = ?", [
       user,
       id,
@@ -67,7 +64,7 @@ export default class UserModel extends Model {
     return recordedItem;
   }
 
-  async delete(id: number): Promise<boolean | null> {
+  async delete(id: number): Promise<boolean> {
     const res = await this.db.query("DELETE FROM users WHERE id = ?", id);
     if (res.affectedRows !== 1) {
       throw new ErrorResponse("Could not delete user", 400);

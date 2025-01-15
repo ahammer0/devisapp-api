@@ -8,7 +8,7 @@ export type quote = {
   name: string | null;
   general_infos: string | null;
   status: "quote" | "draft" | "invoice" | "validated"; //default draft
-  expires_at: string | null;
+  expires_at: string | Date;
   created_at: string; //default now()
 };
 export type quote_create = Partial<

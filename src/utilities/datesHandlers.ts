@@ -22,3 +22,16 @@ export const addMonths = (date: string | Date, n: number) => {
   a.setMonth(a.getMonth() + n);
   return a;
 };
+
+export const toFormDateString = (date: string | Date) => {
+  if (typeof date === "string") {
+    const test = new Date(date);
+    if (test.toString() !== "Invalid Date") {
+      return test.toISOString().split("T")[0];
+    }
+  }
+  if (date instanceof Date) {
+    return date.toISOString().split("T")[0];
+  }
+  return date.split(" ")[0];
+};

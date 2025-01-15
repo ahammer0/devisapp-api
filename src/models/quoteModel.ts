@@ -7,6 +7,7 @@ import {
 } from "../types/quotes";
 import Model from "../utilities/Model";
 import ErrorResponse from "../utilities/ErrorResponse";
+import { customer } from "../types/customers";
 
 export default class QuoteModel extends Model {
   //////////////////////////////////////////
@@ -16,9 +17,12 @@ export default class QuoteModel extends Model {
   //////////////////////////////////////////
 
   //////        CREATE        //////
-  async create(quote: quote_full_create): Promise<full_quote | null> {
+  async create(quote: quote_full_create): Promise<full_quote> {
     //base quote
     const { customer, quote_elements, quote_medias: _a, ...base_quote } = quote;
+    if (base_quote.expires_at) {
+      base_quote.expires_at = new Date(base_quote.expires_at);
+    }
     let recordedItem: full_quote | null = null;
 
     //if new customer record it
@@ -74,7 +78,7 @@ export default class QuoteModel extends Model {
 
   //////        READ          //////
   //////////////////////////////////////////
-  async getAllByUserId(id: number): Promise<full_quote[] | null> {
+  async getAllByUserId(id: number): Promise<full_quote[]> {
     const res = await this.db.query(
       "SELECT id FROM quotes WHERE user_id = ?",
       id,
@@ -86,10 +90,7 @@ export default class QuoteModel extends Model {
   }
 
   //////////////////////////////////////////
-  async getByIdByUserId(
-    id: number,
-    userId: number,
-  ): Promise<full_quote | null> {
+  async getByIdByUserId(id: number, userId: number): Promise<full_quote> {
     const res = await this.db.query(
       `SELECT *, 
         quotes.id as id, 
@@ -108,11 +109,12 @@ export default class QuoteModel extends Model {
         WHERE quotes.id = ? and quotes.user_id = ?`,
       [id, userId],
     );
+    if (res.length === 0) throw new ErrorResponse("Quote Not found...", 404);
 
     const quote_elements = QuoteModel.extractQuoteElementsFromSqlJoin(res);
     const quote_medias = QuoteModel.extractQuoteMediasFromSqlJoin(res);
     const quote_base = QuoteModel.extractQuoteBaseFromSqlJoin(res[0]);
-    let customer = null;
+    let customer: customer | null = null;
     if (res[0].customer_id) {
       customer = {
         id: res[0].customer_id,
@@ -138,7 +140,7 @@ export default class QuoteModel extends Model {
   }
 
   //////////////////////////////////////////
-  async getById(id: number): Promise<full_quote | null> {
+  async getById(id: number): Promise<full_quote> {
     const res = await this.db.query("SELECT * FROM quotes WHERE id = ?", id);
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
@@ -160,7 +162,7 @@ export default class QuoteModel extends Model {
     id: number,
     userId: number,
     quote: Partial<Omit<full_quote, "id">>,
-  ): Promise<full_quote | null> {
+  ): Promise<full_quote> {
     const { customer, quote_elements, quote_medias, ...base_quote } = quote;
     const sql_base = "UPDATE quotes SET ? WHERE id = ? AND user_id = ?";
     const sql_quote_elements =

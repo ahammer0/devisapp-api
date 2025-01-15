@@ -3,7 +3,7 @@ import ErrorResponse from "../utilities/ErrorResponse";
 import Model from "../utilities/Model";
 
 export default class WorkModel extends Model {
-  async create(work: workCreate): Promise<work | null> {
+  async create(work: workCreate): Promise<work> {
     const res = await this.db.query("INSERT INTO works SET ?", work);
     if (res.affectedRows !== 1) {
       throw new ErrorResponse("Could not insert work", 400);
@@ -11,15 +11,15 @@ export default class WorkModel extends Model {
     const recordedItem = await this.getById(res.insertId);
     return recordedItem;
   }
-  async getAll(): Promise<work[] | null> {
+  async getAll(): Promise<work[]> {
     const res = await this.db.query("SELECT * FROM works");
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
     }
-    return [...res.map((item:work) => ({ ...item }))];
+    return [...res.map((item: work) => ({ ...item }))];
   }
 
-  async getAllByUserId(id: number): Promise<work[] | null> {
+  async getAllByUserId(id: number): Promise<work[]> {
     const res = await this.db.query(
       "SELECT * FROM works WHERE user_id = ?",
       id,
@@ -29,7 +29,7 @@ export default class WorkModel extends Model {
     }
     return [...res.map((item: work) => ({ ...item }))];
   }
-  async getById(id: number): Promise<work | null> {
+  async getById(id: number): Promise<work> {
     const res = await this.db.query("SELECT * FROM works WHERE id = ?", [id]);
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
@@ -37,7 +37,7 @@ export default class WorkModel extends Model {
     return { ...res[0] };
   }
 
-  async getByIdByUserId(id: number, user_id: number): Promise<work | null> {
+  async getByIdByUserId(id: number, user_id: number): Promise<work> {
     const res = await this.db.query(
       "SELECT * FROM works WHERE id = ? AND user_id = ?",
       [id, user_id],
@@ -51,7 +51,7 @@ export default class WorkModel extends Model {
     id: number,
     userId: number,
     work: Partial<Omit<work, "id" | "user_id">>,
-  ): Promise<work | null> {
+  ): Promise<work> {
     const res = await this.db.query(
       "UPDATE works SET ? WHERE id = ? AND user_id = ?",
       [work, id, userId],
@@ -63,10 +63,7 @@ export default class WorkModel extends Model {
     return recordedItem;
   }
 
-  async deleteByIdByUserId(
-    id: number,
-    userId: number,
-  ): Promise<boolean | null> {
+  async deleteByIdByUserId(id: number, userId: number): Promise<boolean> {
     const res = await this.db.query(
       "DELETE FROM works WHERE id = ? AND user_id = ?",
       [id, userId],

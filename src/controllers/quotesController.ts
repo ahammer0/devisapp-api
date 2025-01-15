@@ -2,30 +2,41 @@ import QuoteModel from "../models/quoteModel";
 import { Connection } from "promise-mysql";
 import { Response } from "express";
 import Controller from "../utilities/Controller";
-import {ReqWithId} from "../types/misc";
+import { ReqWithId } from "../types/misc";
 import ErrorResponse from "../utilities/ErrorResponse";
-import {quote_full_create} from "../types/quotes";
+import { quote_full_create } from "../types/quotes";
+import WorkModel from "../models/workModel";
+import UserModel from "../models/userModel";
+import getQuotePdfStream from "../utilities/QuotePdfComponent";
+import { isPast } from "../utilities/datesHandlers";
 
 export default class QuotesController extends Controller {
   quoteModel: QuoteModel;
+  workModel: WorkModel;
+  userModel: UserModel;
 
   constructor(db: Connection) {
     super(db);
     this.quoteModel = new QuoteModel(this.db);
+    this.workModel = new WorkModel(this.db);
+    this.userModel = new UserModel(this.db);
 
     this.addQuote = this.addQuote.bind(this);
     this.getAllQuotes = this.getAllQuotes.bind(this);
     this.getOneQuote = this.getOneQuote.bind(this);
     this.editQuote = this.editQuote.bind(this);
     this.deleteQuote = this.deleteQuote.bind(this);
+    this.getQuotePdf = this.getQuotePdf.bind(this);
   }
   async addQuote(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
 
-    const newQuote:quote_full_create = req.body;
-    newQuote.expires_at = new Date(newQuote.expires_at??new Date()).toISOString();
+    const newQuote: quote_full_create = req.body;
+    newQuote.expires_at = new Date(
+      newQuote.expires_at ?? new Date(),
+    ).toISOString();
 
     const id = req.id;
     newQuote.user_id = id;
@@ -37,7 +48,7 @@ export default class QuotesController extends Controller {
     }
   }
   async getAllQuotes(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     const id = req.id;
@@ -49,7 +60,7 @@ export default class QuotesController extends Controller {
     }
   }
   async getOneQuote(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     const userId = req.id;
@@ -63,7 +74,7 @@ export default class QuotesController extends Controller {
   }
 
   async editQuote(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     const userId = req.id;
@@ -85,7 +96,7 @@ export default class QuotesController extends Controller {
     }
   }
   async deleteQuote(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     const userId = req.id;
@@ -93,6 +104,35 @@ export default class QuotesController extends Controller {
     try {
       const quote = await this.quoteModel.deleteByIdByUserId(quoteId, userId);
       res.status(200).json(quote);
+    } catch (e) {
+      QuotesController.handleError(e, res);
+    }
+  }
+  async getQuotePdf(req: ReqWithId, res: Response) {
+    //validating req body
+    const quoteId = parseInt(req.params.id);
+    if (!quoteId || isNaN(quoteId)) throw new ErrorResponse("Bad Request", 400);
+    if (!req.id) throw new ErrorResponse("Authentification Failed", 401);
+    try {
+      const userRes = this.userModel.getById(req.id);
+      const quoteRes = this.quoteModel.getByIdByUserId(quoteId, req.id);
+      const worksRes = this.workModel.getAllByUserId(req.id);
+
+      const [user, quote, works] = await Promise.all([
+        userRes,
+        quoteRes,
+        worksRes,
+      ]);
+
+      //check if user account is valid
+      if (isPast(user.expires_at)) {
+        throw new ErrorResponse("Payment required", 402);
+      }
+
+      //now we have all we need
+      const pdfStream = await getQuotePdfStream(user, quote, works);
+      res.setHeader("Content-Type", "application/pdf");
+      pdfStream.pipe(res);
     } catch (e) {
       QuotesController.handleError(e, res);
     }
