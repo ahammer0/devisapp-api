@@ -346,12 +346,17 @@ export default class QuoteModel extends Model {
   //////        DELETE        //////
   //////////////////////////////////////////
   async deleteByIdByUserId(id: number, userId: number): Promise<boolean> {
-    const sql = "DELETE FROM quotes WHERE id = ? AND user_id = ?";
+    const sql = `
+        DELETE quotes,customers 
+        FROM quotes 
+        INNER JOIN customers ON quotes.customer_id=customers.id
+        WHERE quotes.id = ? AND quotes.user_id = ?;
+    `;
     const res = await this.db.query(sql, [id, userId]);
-    if (res.affectedRows !== 1) {
+    if (res.affectedRows === 0) {
       throw new ErrorResponse(
         "Could not delete quote, no matching id for user",
-        400,
+        404,
       );
     }
     return true;
