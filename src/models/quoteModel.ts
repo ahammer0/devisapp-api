@@ -141,19 +141,52 @@ export default class QuoteModel extends Model {
 
   //////////////////////////////////////////
   async getById(id: number): Promise<full_quote> {
-    const res = await this.db.query("SELECT * FROM quotes WHERE id = ?", id);
-    if (res.length === 0) {
-      throw new ErrorResponse("No results ", 204);
+    const res = await this.db.query(
+      `SELECT *, 
+        quotes.id as id, 
+        quotes.id as quote_id,
+        quotes.user_id as user_id,
+        quote_elements.id as quote_element_id, 
+        quote_medias.id as quote_media_id,
+        customers.id as customer_id,
+        customers.user_id as customer_user_id
+
+        FROM quotes 
+
+        LEFT JOIN quote_elements ON quotes.id = quote_elements.quote_id 
+        LEFT JOIN quote_medias ON quotes.id = quote_medias.quote_id 
+        LEFT JOIN customers ON quotes.customer_id = customers.id
+        WHERE quotes.id = ?`,
+      [id],
+    );
+    if (res.length === 0) throw new ErrorResponse("Quote Not found...", 404);
+
+    const quote_elements = QuoteModel.extractQuoteElementsFromSqlJoin(res);
+    const quote_medias = QuoteModel.extractQuoteMediasFromSqlJoin(res);
+    const quote_base = QuoteModel.extractQuoteBaseFromSqlJoin(res[0]);
+    let customer: customer | null = null;
+    if (res[0].customer_id) {
+      customer = {
+        id: res[0].customer_id,
+        user_id: res[0].user_id,
+        first_name: res[0].first_name,
+        last_name: res[0].last_name,
+        street: res[0].street,
+        city: res[0].city,
+        zip: res[0].zip,
+        phone: res[0].phone,
+        email: res[0].email,
+      };
     }
-    const quote_elements = await this.db.query(
-      "SELECT * FROM quote_elements WHERE quote_id = ?",
-      id,
-    );
-    const quote_medias = await this.db.query(
-      "SELECT * FROM quote_medias WHERE quote_id = ?",
-      id,
-    );
-    return { ...res[0], quote_elements, quote_medias };
+
+    const recontructed_quote: full_quote = {
+      ...quote_base,
+      customer,
+      quote_elements,
+      quote_medias,
+    };
+
+    return recontructed_quote;
   }
 
   //////        UPDATE        //////

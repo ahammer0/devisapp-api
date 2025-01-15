@@ -1,7 +1,7 @@
 import { Request } from "express";
 export type TokenPayloadDecoded = {
   id: number;
-  role:"user" | "admin";
+  role: "user" | "admin";
   iat: number;
   exp: number;
 };

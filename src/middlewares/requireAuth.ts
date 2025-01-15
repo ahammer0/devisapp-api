@@ -1,6 +1,6 @@
 import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import {TokenPayloadDecoded, ReqWithId} from "../types/misc";
+import { TokenPayloadDecoded, ReqWithId } from "../types/misc";
 
 const requireAuth = (req: ReqWithId, res: Response, next: NextFunction) => {
   const secret = process.env.JWT_SECRET;

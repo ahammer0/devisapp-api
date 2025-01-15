@@ -21,7 +21,7 @@ const requireAdmin = (req: ReqWithId, res: Response, next: NextFunction) => {
     }
     req.id = decoded.id;
     next();
-  } catch{
+  } catch {
     res.status(401).json({ message: "Unauthorized" });
     return;
   }

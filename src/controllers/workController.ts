@@ -3,7 +3,7 @@ import { Response } from "express";
 import WorkModel from "../models/workModel";
 import { workCreate } from "../types/works";
 import Controller from "../utilities/Controller";
-import {ReqWithId} from "../types/misc";
+import { ReqWithId } from "../types/misc";
 import ErrorResponse from "../utilities/ErrorResponse";
 
 export default class WorkController extends Controller {
@@ -23,7 +23,7 @@ export default class WorkController extends Controller {
   async createWork(req: ReqWithId, res: Response) {
     const newWork: workCreate = req.body;
 
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     newWork.user_id = req.id;
@@ -35,7 +35,7 @@ export default class WorkController extends Controller {
     }
   }
   async getAllWorks(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     const id = req.id;
@@ -48,7 +48,7 @@ export default class WorkController extends Controller {
   }
 
   async getWorkById(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     const userId: number = req.id;
@@ -64,7 +64,7 @@ export default class WorkController extends Controller {
   }
 
   async editWorkById(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     const userId: number = req.id;
@@ -82,7 +82,7 @@ export default class WorkController extends Controller {
   }
 
   async deleteWorkById(req: ReqWithId, res: Response) {
-    if(!req.id){
+    if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
     const userId = req.id;

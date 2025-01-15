@@ -123,7 +123,7 @@ export default class UserController extends Controller {
       quote_infos,
     } = req.body;
 
-    let password;
+    let password: string | undefined;
     if (req.body.password) {
       password = await bcrypt.hash(req.body.password, 10);
     }
@@ -199,7 +199,6 @@ export default class UserController extends Controller {
 
       res.status(200).json(response);
     } catch (e) {
-      console.log(e);
       UserController.handleError(e, res);
     }
   }
@@ -223,7 +222,7 @@ export default class UserController extends Controller {
         );
       }
       // register payment in db
-      let amount;
+      let amount: number;
       switch (body.plan) {
         case 3:
           amount = 30;
