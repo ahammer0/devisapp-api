@@ -9,6 +9,7 @@ import { ReqWithId } from "../types/misc";
 import { addCreditRequestBody } from "../types/users";
 import PaymentModel from "../models/paymentModel";
 import { assertDate, isPast } from "../utilities/datesHandlers";
+import { emailValidator, passwordValidator } from "../utilities/validators";
 
 export default class UserController extends Controller {
   userModel: UserModel;
@@ -64,25 +65,28 @@ export default class UserController extends Controller {
   }
 
   async register(req: Request, res: Response) {
-    const {
-      email,
-      first_name,
-      last_name,
-      company_name,
-      company_address,
-      siret,
-      ape_code,
-      rcs_code,
-      tva_number,
-      company_type,
-      subscription_plan,
-      quote_infos,
-    } = req.body;
-    const password = await bcrypt.hash(req.body.password, 10);
-
     try {
-      const user = await this.userModel.create({
+      const {
         email,
+        first_name,
+        last_name,
+        company_name,
+        company_address,
+        siret,
+        ape_code,
+        rcs_code,
+        tva_number,
+        company_type,
+        subscription_plan,
+        quote_infos,
+      } = req.body;
+      const password = await bcrypt.hash(
+        passwordValidator(req.body.password),
+        10,
+      );
+
+      const user = await this.userModel.create({
+        email: emailValidator(email),
         password,
         first_name,
         last_name,
@@ -123,30 +127,30 @@ export default class UserController extends Controller {
       quote_infos,
     } = req.body;
 
-    let password: string | undefined;
-    if (req.body.password) {
-      password = await bcrypt.hash(req.body.password, 10);
-    }
-    const userToSave = {
-      email,
-      password,
-      first_name,
-      last_name,
-      company_name,
-      company_address,
-      siret,
-      ape_code,
-      rcs_code,
-      tva_number,
-      company_type,
-      subscription_plan,
-      quote_infos,
-    };
-    if (!password) {
-      delete userToSave.password;
-    }
-
     try {
+      let password: string | undefined;
+      if (req.body.password) {
+        password = await bcrypt.hash(passwordValidator(req.body.password), 10);
+      }
+      const userToSave = {
+        email: emailValidator(email),
+        password: password && passwordValidator(password),
+        first_name,
+        last_name,
+        company_name,
+        company_address,
+        siret,
+        ape_code,
+        rcs_code,
+        tva_number,
+        company_type,
+        subscription_plan,
+        quote_infos,
+      };
+      if (!password) {
+        delete userToSave.password;
+      }
+
       const user = await this.userModel.update(id, userToSave);
       res.status(200).json({ ...user, password: undefined });
     } catch (e) {
