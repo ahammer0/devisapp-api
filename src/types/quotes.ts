@@ -22,6 +22,7 @@ export type quote_element = {
   quote_id: number;
   work_id: number;
   quote_section: string;
+  vat: 20 | 10 | 5.5 | 0;
   discount: number;
   quantity: number;
 };

@@ -96,20 +96,16 @@ const QuotePdfComponent = ({
   }, [] as string[]);
 
   const getSectionTotal = (section: string) => {
-    return quote.quote_elements
-      .reduce((acc, el) => {
-        if (el.quote_section === section) {
-          const wo = works.find((e) => e.id === el.work_id);
-          if (!wo) throw new Error("Work not found");
-          return (
-            acc + (el.quantity * wo.unit_price * (100 - el.discount)) / 100
-          );
-        }
-        return acc;
-      }, 0)
-      .toFixed(2);
+    return quote.quote_elements.reduce((acc, el) => {
+      if (el.quote_section === section) {
+        const wo = works.find((e) => e.id === el.work_id);
+        if (!wo) throw new Error("Work not found");
+        return acc + (el.quantity * wo.unit_price * (100 - el.discount)) / 100;
+      }
+      return acc;
+    }, 0);
   };
-  const getGranTotal = () => {
+  const getGranTotalHT = () => {
     return (
       (quote.quote_elements.reduce((acc, el) => {
         const wo = works.find((e) => e.id === el.work_id);
@@ -118,8 +114,28 @@ const QuotePdfComponent = ({
       }, 0) *
         (100 - quote.global_discount)) /
       100
-    ).toFixed(2);
+    );
   };
+  const getGranTotalTVA = () => {
+    return (
+      (quote.quote_elements.reduce((acc, el) => {
+        const wo = works.find((e) => e.id === el.work_id);
+        if (!wo) throw new Error("Work not found");
+
+        return (
+          acc +
+          ((el.quantity * wo.unit_price * (100 - el.discount)) / 100) *
+            (el.vat / 100)
+        );
+      }, 0) *
+        (100 - quote.global_discount)) /
+      100
+    );
+  };
+  const getGranTotalTTC = () => {
+    return getGranTotalHT() + getGranTotalTVA();
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page} wrap>
@@ -162,7 +178,7 @@ const QuotePdfComponent = ({
               (el) => el.quote_section === section,
             );
             return (
-              <View style={styles.quoteSection}>
+              <View style={styles.quoteSection} key={section}>
                 <Text>Section: {section}</Text>
                 <View
                   /* //ts-ignore */
@@ -191,7 +207,10 @@ const QuotePdfComponent = ({
                   const wo = works.find((e) => e.id === el.work_id);
 
                   return (
-                    <view style={styles.quoteLine}>
+                    <view
+                      style={styles.quoteLine}
+                      key={`${el.work_id}${el.quote_section}`}
+                    >
                       <Text style={styles.quoteLineName}>{wo?.name}</Text>
                       <Text style={styles.quoteLineQuantity}>
                         {el.quantity}
@@ -220,7 +239,7 @@ const QuotePdfComponent = ({
                   }}
                 >
                   <Text style={{ padding: 7, border: "1px solid #afafaf" }}>
-                    Sous-Total: {getSectionTotal(section)}€
+                    Sous-Total HT: {getSectionTotal(section).toFixed(2)}€
                   </Text>
                 </View>
               </View>
@@ -241,16 +260,46 @@ const QuotePdfComponent = ({
               justifyContent: "flex-end",
             }}
           >
-            <Text
+            <View
               style={{
-                textAlign: "right",
-                fontWeight: "bold",
-                border: "2px solid black",
-                padding: 10,
+                display: "flex",
+                flexDirection: "column",
               }}
             >
-              TOTAL: {getGranTotal()} €
-            </Text>
+              <Text
+                style={{
+                  textAlign: "right",
+                  fontWeight: "bold",
+                  border: "2px solid black",
+                  padding: 10,
+                  margin: 0,
+                }}
+              >
+                TOTAL HT: {getGranTotalHT().toFixed(2)} €
+              </Text>
+              <Text
+                style={{
+                  textAlign: "right",
+                  fontWeight: "bold",
+                  border: "2px solid black",
+                  padding: 10,
+                  margin: 0,
+                }}
+              >
+                TVA: {getGranTotalTVA().toFixed(2)} €
+              </Text>
+              <Text
+                style={{
+                  textAlign: "right",
+                  fontWeight: "bold",
+                  border: "2px solid black",
+                  padding: 10,
+                  margin: 0,
+                }}
+              >
+                TOTAL TTC: {getGranTotalTTC().toFixed(2)} €
+              </Text>
+            </View>
           </View>
 
           <View style={styles.footer}>

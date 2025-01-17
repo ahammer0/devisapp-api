@@ -380,6 +380,7 @@ export default class QuoteModel extends Model {
             quote_id: el.quote_id,
             work_id: el.work_id,
             quote_section: el.quote_section,
+            vat: el.vat,
             discount: el.discount,
             quantity: el.quantity,
           };

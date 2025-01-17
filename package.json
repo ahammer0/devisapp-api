@@ -5,7 +5,7 @@
   "main": "src/server.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --exec ts-node src/server.ts",
+    "dev": "nodemon -e ts,tsx --exec ts-node src/server.ts",
     "lint": "eslint ."
   },
   "author": "",
