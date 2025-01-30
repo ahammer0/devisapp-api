@@ -8,6 +8,7 @@ import {
 import Model from "../utilities/Model";
 import ErrorResponse from "../utilities/ErrorResponse";
 import { customer } from "../types/customers";
+import { textValidator } from "../utilities/validators";
 
 export default class QuoteModel extends Model {
   //////////////////////////////////////////
@@ -57,6 +58,7 @@ export default class QuoteModel extends Model {
       const newQuote_elements = quote_elements.map((el) => ({
         ...el,
         quote_id: newQuoteId,
+        vat: textValidator(el.vat),
       }));
 
       const res2 = await Promise.allSettled(
@@ -216,10 +218,8 @@ export default class QuoteModel extends Model {
           400,
         );
       }
-    } else {
-      const customerToInsert = { ...customer };
-      delete customerToInsert.id;
-      delete customerToInsert.user_id;
+    } else if (customer) {
+      const { id: _1, user_id: _2, ...customerToInsert } = { ...customer };
 
       const resInsertCustomer = await this.db.query(
         "INSERT INTO customers SET ?,user_id=?",
@@ -291,7 +291,7 @@ export default class QuoteModel extends Model {
       //creating quote_elements
       const res_create = quote_elements_to_create.map((el) =>
         this.db.query("INSERT INTO quote_elements SET ? ,quote_id= ?", [
-          el,
+          { ...el, vat: textValidator(el.vat) },
           id,
         ]),
       );
@@ -299,7 +299,11 @@ export default class QuoteModel extends Model {
       //updating quote_elements
       const res_update = quote_elements_to_update.map((el) => {
         const { quote_id: _, ...newEl } = el;
-        return this.db.query(sql_quote_elements, [newEl, el.id, id]);
+        return this.db.query(sql_quote_elements, [
+          { ...newEl, vat: textValidator(newEl.vat) },
+          el.id,
+          id,
+        ]);
       });
 
       //awaiting create and update promises
@@ -349,7 +353,7 @@ export default class QuoteModel extends Model {
     const sql = `
         DELETE quotes,customers 
         FROM quotes 
-        INNER JOIN customers ON quotes.customer_id=customers.id
+        LEFT JOIN customers ON quotes.customer_id=customers.id
         WHERE quotes.id = ? AND quotes.user_id = ?;
     `;
     const res = await this.db.query(sql, [id, userId]);
