@@ -9,6 +9,8 @@ const quotesRoutes = (app: Express, db: Connection) => {
   const router = express.Router();
   router.post("/add", controller.addQuote);
   router.get("/all", controller.getAllQuotes);
+  router.post("/media/add", controller.addMedia);
+  router.get("/media/:id", controller.getMedia);
   router.get("/downloadQuotePdf/:id", controller.getQuotePdf);
   router.get("/:id", controller.getOneQuote);
   router.put("/:id", controller.editQuote);

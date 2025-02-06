@@ -27,6 +27,8 @@ export default class QuotesController extends Controller {
     this.editQuote = this.editQuote.bind(this);
     this.deleteQuote = this.deleteQuote.bind(this);
     this.getQuotePdf = this.getQuotePdf.bind(this);
+    this.addMedia = this.addMedia.bind(this);
+    this.getMedia = this.getMedia.bind(this);
   }
   async addQuote(req: ReqWithId, res: Response) {
     if (!req.id) {
@@ -43,6 +45,45 @@ export default class QuotesController extends Controller {
     try {
       const quote = await this.quoteModel.create(newQuote);
       res.status(201).json(quote);
+    } catch (e) {
+      QuotesController.handleError(e, res);
+    }
+  }
+
+  async addMedia(req: ReqWithId, res: Response) {
+    try {
+      //Validating data
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      if (!req?.files?.image || !("data" in req?.files?.image))
+        throw new ErrorResponse("No file in request", 422);
+      if (!req.body.quoteId)
+        throw new ErrorResponse("No quoteId specified in request", 422);
+
+      const media = await this.quoteModel.createMedia(
+        req.files.image.data,
+        req.id,
+        req.body.quoteId,
+      );
+      res.status(201).json(media);
+    } catch (e) {
+      QuotesController.handleError(e, res);
+    }
+  }
+  async getMedia(req: ReqWithId, res: Response) {
+    try {
+      //Validating data
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const filePath = await this.quoteModel.getMediaByIdByUserId(
+        parseInt(req.params.id),
+        req.id,
+      );
+      if (!filePath) throw new ErrorResponse("Requested media not found", 404);
+
+      res.sendFile(`${process.cwd()}/privateImages/${filePath}.webp`);
     } catch (e) {
       QuotesController.handleError(e, res);
     }

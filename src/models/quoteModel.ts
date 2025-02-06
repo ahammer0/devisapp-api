@@ -9,6 +9,7 @@ import Model from "../utilities/Model";
 import ErrorResponse from "../utilities/ErrorResponse";
 import { customer } from "../types/customers";
 import { textValidator } from "../utilities/validators";
+import sharp from "sharp";
 
 export default class QuoteModel extends Model {
   //////////////////////////////////////////
@@ -76,6 +77,39 @@ export default class QuoteModel extends Model {
 
     //returning created quote
     return await this.getById(newQuoteId);
+  }
+
+  //////////////////////////////////////////
+  async createMedia(file: ArrayBuffer, userId: number, quoteId: number) {
+    const sql = `INSERT INTO quote_medias (path_name,alt_text,quote_id) VALUES (?,?,?)`;
+    const newFilename = `${userId}-${quoteId}-${Date.now()}`;
+
+    //resizing & converting images
+    const originalSize = await sharp(file).toFile(
+      `./privateImages/${newFilename}.webp`,
+    );
+    const originalSizeJpeg = await sharp(file).toFile(
+      `./privateImages/${newFilename}.jpeg`,
+    );
+    const w100Size = await sharp(file)
+      .resize(100)
+      .toFile(`./privateImages/${newFilename}_w100.webp`);
+
+    const w300Size = await sharp(file)
+      .resize(300)
+      .toFile(`./privateImages/${newFilename}_w300.webp`);
+
+    await Promise.all([originalSize, originalSizeJpeg, w100Size, w300Size]);
+    const res = await this.db.query(sql, [
+      newFilename,
+      `Média du devis ${quoteId}`,
+      quoteId,
+    ]);
+    return {
+      id: res.insertId,
+      path_name: newFilename,
+      alt_text: `Média du devis ${quoteId}`,
+    };
   }
 
   //////        READ          //////
@@ -189,6 +223,18 @@ export default class QuoteModel extends Model {
     };
 
     return recontructed_quote;
+  }
+  //////////////////////////////////////////
+  async getMediaByIdByUserId(mediaId: number, userId: number) {
+    const sql = `
+      SELECT path_name FROM quote_medias
+      INNER JOIN quotes on quotes.id=quote_medias.quote_id
+      where quotes.user_id = ? && quote_medias.id=?;
+    `;
+    const res = await this.db.query(sql, [userId, mediaId]);
+    console.log(res.length);
+    if (res.length === 0) return null;
+    return res[0].path_name;
   }
 
   //////        UPDATE        //////
@@ -378,16 +424,19 @@ export default class QuoteModel extends Model {
   ): quote_element[] {
     const quote_elements = joinResponse.reduce(
       (acc: quote_element[], el: (typeof joinResponse)[0]) => {
-        if (el.quote_element_id) {
-          const quote_element: quote_element = {
-            id: el.quote_element_id,
-            quote_id: el.quote_id,
-            work_id: el.work_id,
-            quote_section: el.quote_section,
-            vat: el.vat,
-            discount: el.discount,
-            quantity: el.quantity,
-          };
+        const quote_element: quote_element = {
+          id: el.quote_element_id,
+          quote_id: el.quote_id,
+          work_id: el.work_id,
+          quote_section: el.quote_section,
+          vat: el.vat,
+          discount: el.discount,
+          quantity: el.quantity,
+        };
+        if (
+          el.quote_element_id &&
+          !acc.find((el) => el.id === quote_element.id)
+        ) {
           acc.push(quote_element);
         }
         return acc;
