@@ -11,6 +11,7 @@ const quotesRoutes = (app: Express, db: Connection) => {
   router.get("/all", controller.getAllQuotes);
   router.post("/media/add", controller.addMedia);
   router.get("/media/:id", controller.getMedia);
+  router.delete("/media/:id", controller.deleteMedia);
   router.get("/downloadQuotePdf/:id", controller.getQuotePdf);
   router.get("/:id", controller.getOneQuote);
   router.put("/:id", controller.editQuote);

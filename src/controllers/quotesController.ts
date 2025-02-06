@@ -29,6 +29,7 @@ export default class QuotesController extends Controller {
     this.getQuotePdf = this.getQuotePdf.bind(this);
     this.addMedia = this.addMedia.bind(this);
     this.getMedia = this.getMedia.bind(this);
+    this.deleteMedia = this.deleteMedia.bind(this);
   }
   async addQuote(req: ReqWithId, res: Response) {
     if (!req.id) {
@@ -174,6 +175,18 @@ export default class QuotesController extends Controller {
       const pdfStream = await getQuotePdfStream(user, quote, works);
       res.setHeader("Content-Type", "application/pdf");
       pdfStream.pipe(res);
+    } catch (e) {
+      QuotesController.handleError(e, res);
+    }
+  }
+  async deleteMedia(req: ReqWithId, res: Response) {
+    if (!req.id) {
+      throw new ErrorResponse("Unauthorized: Token not found", 401);
+    }
+    const mediaId = parseInt(req.params.id);
+    try {
+      await this.quoteModel.deleteMediaByIdByUserId(mediaId, req.id);
+      res.status(200).json(true);
     } catch (e) {
       QuotesController.handleError(e, res);
     }

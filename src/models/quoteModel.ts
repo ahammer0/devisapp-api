@@ -10,6 +10,7 @@ import ErrorResponse from "../utilities/ErrorResponse";
 import { customer } from "../types/customers";
 import { textValidator } from "../utilities/validators";
 import sharp from "sharp";
+import fs from "fs/promises";
 
 export default class QuoteModel extends Model {
   //////////////////////////////////////////
@@ -232,7 +233,6 @@ export default class QuoteModel extends Model {
       where quotes.user_id = ? && quote_medias.id=?;
     `;
     const res = await this.db.query(sql, [userId, mediaId]);
-    console.log(res.length);
     if (res.length === 0) return null;
     return res[0].path_name;
   }
@@ -410,6 +410,30 @@ export default class QuoteModel extends Model {
       );
     }
     return true;
+  }
+
+  //////////////////////////////////////////
+  async deleteMediaByIdByUserId(mediaId: number, userId: number) {
+    const sql = `
+      SELECT path_name FROM quote_medias
+      INNER JOIN quotes on quotes.id=quote_medias.quote_id
+      where quotes.user_id = ? && quote_medias.id=?;
+    `;
+    const res = await this.db.query(sql, [userId, mediaId]);
+    if (res.length === 0) throw new ErrorResponse("Media not found", 404);
+    const path = res[0].path_name;
+
+    //deleting files
+    const files = await fs.readdir("./privateImages/");
+    const filesToDelete = files.filter((f) => f.includes(path));
+    const promises = [];
+    for (let p of filesToDelete) {
+      const prom = await fs.unlink(`./privateImages/${p}`);
+      promises.push(prom);
+    }
+    await Promise.all(promises);
+    //deleting db entry
+    await this.db.query("DELETE FROM quote_medias WHERE id = ?", mediaId);
   }
 
   //////////////////////////////////////////
