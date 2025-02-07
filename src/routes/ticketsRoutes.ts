@@ -9,6 +9,7 @@ const ticketsRoutes = (app: Express, db: Connection) => {
   const router = express.Router();
   router.get("/all", requireAuth, controller.getAllTicketsByUserId);
   router.get("/:id", requireAuth, controller.getOneTicketByUserId);
+  router.delete("/:id", requireAuth, controller.deleteTicket);
   router.post("/", requireAuth, controller.createTicket);
 
   app.use("/tickets", requireAuth, router);

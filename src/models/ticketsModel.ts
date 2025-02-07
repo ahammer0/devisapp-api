@@ -38,4 +38,10 @@ export default class TicketsModel extends Model {
 
   //////        UPDATE        //////
   //////        DELETE        //////
+  async deleteByIdByUserId(id: number, userId: number) {
+    const sql = `DELETE FROM tickets WHERE id=? AND user_id=?`;
+    const res = await this.db.query(sql, [id, userId]);
+    if (res.affectedRows === 0)
+      throw new ErrorResponse("No matching id for user", 404);
+  }
 }

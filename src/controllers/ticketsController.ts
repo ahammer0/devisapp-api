@@ -16,6 +16,7 @@ export default class TicketsController extends Controller {
     this.getAllTicketsByUserId = this.getAllTicketsByUserId.bind(this);
     this.getOneTicketByUserId = this.getOneTicketByUserId.bind(this);
     this.createTicket = this.createTicket.bind(this);
+    this.deleteTicket = this.deleteTicket.bind(this);
   }
 
   async getAllTicketsByUserId(req: ReqWithId, res: Response) {
@@ -54,6 +55,22 @@ export default class TicketsController extends Controller {
     try {
       const ticketCreated = await this.ticketsModel.create(userId, ticket);
       res.status(201).json(ticketCreated);
+    } catch (error) {
+      TicketsController.handleError(error, res);
+    }
+  }
+  async deleteTicket(req: ReqWithId, res: Response) {
+    if (!req.id) {
+      throw new ErrorResponse("Unauthorized: Token not found", 401);
+    }
+    if (!req.params.id) {
+      throw new ErrorResponse("No ticket id in request", 422);
+    }
+    const userId: number = req.id;
+    const ticketId = parseInt(req.params.id);
+    try {
+      await this.ticketsModel.deleteByIdByUserId(ticketId, userId);
+      res.status(200).json("Deleted successfully");
     } catch (error) {
       TicketsController.handleError(error, res);
     }
