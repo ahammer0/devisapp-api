@@ -20,11 +20,11 @@ export default class TicketsController extends Controller {
   }
 
   async getAllTicketsByUserId(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const userId: number = req.id;
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const userId: number = req.id;
       const tickets = await this.ticketsModel.getAllByUserId(userId);
       res.status(200).json(tickets);
     } catch (error) {
@@ -32,12 +32,12 @@ export default class TicketsController extends Controller {
     }
   }
   async getOneTicketByUserId(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const userId: number = req.id;
-    const id = parseInt(req.params.id);
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const userId: number = req.id;
+      const id = parseInt(req.params.id);
       const ticket = await this.ticketsModel.getByIdByUserId(id, userId);
       res.status(200).json(ticket);
     } catch (error) {
@@ -46,13 +46,13 @@ export default class TicketsController extends Controller {
   }
 
   async createTicket(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const userId: number = req.id;
-    //todo valider le body
-    const ticket: ticketCreate = req.body;
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const userId: number = req.id;
+      //todo valider le body
+      const ticket: ticketCreate = req.body;
       const ticketCreated = await this.ticketsModel.create(userId, ticket);
       res.status(201).json(ticketCreated);
     } catch (error) {
@@ -60,15 +60,15 @@ export default class TicketsController extends Controller {
     }
   }
   async deleteTicket(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    if (!req.params.id) {
-      throw new ErrorResponse("No ticket id in request", 422);
-    }
-    const userId: number = req.id;
-    const ticketId = parseInt(req.params.id);
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      if (!req.params.id) {
+        throw new ErrorResponse("No ticket id in request", 422);
+      }
+      const userId: number = req.id;
+      const ticketId = parseInt(req.params.id);
       await this.ticketsModel.deleteByIdByUserId(ticketId, userId);
       res.status(200).json("Deleted successfully");
     } catch (error) {

@@ -23,11 +23,11 @@ export default class WorkController extends Controller {
   async createWork(req: ReqWithId, res: Response) {
     const newWork: workCreate = req.body;
 
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    newWork.user_id = req.id;
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      newWork.user_id = req.id;
       const work = await this.workModel.create(newWork);
       res.status(201).json(work);
     } catch (e) {
@@ -35,11 +35,11 @@ export default class WorkController extends Controller {
     }
   }
   async getAllWorks(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const id = req.id;
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const id = req.id;
       const works = await this.workModel.getAllByUserId(id);
       res.status(200).json(works);
     } catch (e) {
@@ -48,11 +48,11 @@ export default class WorkController extends Controller {
   }
 
   async getWorkById(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const userId: number = req.id;
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const userId: number = req.id;
       const work = await this.workModel.getByIdByUserId(
         parseInt(req.params.id),
         userId,
@@ -64,12 +64,12 @@ export default class WorkController extends Controller {
   }
 
   async editWorkById(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const userId: number = req.id;
-
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const userId: number = req.id;
+
       const work = await this.workModel.updateByidByUserId(
         parseInt(req.params.id),
         userId,
@@ -82,11 +82,11 @@ export default class WorkController extends Controller {
   }
 
   async deleteWorkById(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const userId = req.id;
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const userId = req.id;
       const work = await this.workModel.deleteByIdByUserId(
         parseInt(req.params.id),
         userId,

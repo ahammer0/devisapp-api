@@ -14,6 +14,10 @@ const adminRoutes = (app: Express, db: Connection) => {
   router.put("/users/:id", controller.editUser);
   router.delete("/users/:id", controller.deleteUser);
 
+  router.get("/tickets/all-opened", controller.getAllOpenTickets);
+  router.get("/tickets/:id", controller.getOneTicket);
+  router.put("/tickets/close/:id", controller.closeTicket);
+
   router.get("/payments/all", controller.getAllPayments);
 
   app.use("/admin", requireAdmin, router);

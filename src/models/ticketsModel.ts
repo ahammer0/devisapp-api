@@ -27,7 +27,12 @@ export default class TicketsModel extends Model {
     const res = await this.db.query(sql, [userId]);
     return [...res];
   }
-
+  //////////////////////////////////
+  async getAllOpen() {
+    const sql = `SELECT * FROM tickets WHERE status="open"`;
+    const res = await this.db.query(sql);
+    return [...res];
+  }
   //////////////////////////////////
   async getByIdByUserId(id: number, userId: number) {
     const sql = `SELECT * FROM tickets WHERE id=? AND user_id = ?`;
@@ -35,8 +40,21 @@ export default class TicketsModel extends Model {
     if (res.length === 0) throw new ErrorResponse("No results", 204);
     return res[0];
   }
+  //////////////////////////////////
+  async getById(id: number) {
+    const sql = `SELECT * FROM tickets WHERE id=?`;
+    const res = await this.db.query(sql, [id]);
+    if (res.length === 0) throw new ErrorResponse("No results", 204);
+    return res[0];
+  }
 
   //////        UPDATE        //////
+  async closeTicket(id: number) {
+    const sql = `UPDATE tickets SET status="closed" WHERE id=?`;
+    const res = await this.db.query(sql, [id]);
+    if (res.affectedRows === 0)
+      throw new ErrorResponse("Ticket not found", 404);
+  }
   //////        DELETE        //////
   async deleteByIdByUserId(id: number, userId: number) {
     const sql = `DELETE FROM tickets WHERE id=? AND user_id=?`;

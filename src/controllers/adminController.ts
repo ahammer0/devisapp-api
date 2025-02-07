@@ -1,20 +1,24 @@
 import { Response, Request } from "express";
+import { ReqWithId } from "../types/misc";
 import { Connection } from "promise-mysql";
 import jwt from "jsonwebtoken";
 import UserModel from "../models/userModel";
 import PaymentModel from "../models/paymentModel";
+import TicketModel from "../models/ticketsModel";
 import Controller from "../utilities/Controller";
 import ErrorResponse from "../utilities/ErrorResponse";
 
 export default class AdminController extends Controller {
   userModel: UserModel;
   paymentModel: PaymentModel;
+  ticketModel: TicketModel;
 
   constructor(db: Connection) {
     super(db);
 
     this.userModel = new UserModel(this.db);
     this.paymentModel = new PaymentModel(this.db);
+    this.ticketModel = new TicketModel(this.db);
 
     this.login = this.login.bind(this);
 
@@ -24,16 +28,20 @@ export default class AdminController extends Controller {
     this.deleteUser = this.deleteUser.bind(this);
 
     this.getAllPayments = this.getAllPayments.bind(this);
+
+    this.getAllOpenTickets = this.getAllOpenTickets.bind(this);
+    this.closeTicket = this.closeTicket.bind(this);
+    this.getOneTicket = this.getOneTicket.bind(this);
   }
 
   async login(req: Request, res: Response) {
-    const { key } = req.body;
-    if (!key) throw new ErrorResponse("Bad Request", 400);
-
-    const adminKey = process.env.ADMIN_KEY;
-    const secret = process.env.JWT_SECRET;
-
     try {
+      const { key } = req.body;
+      if (!key) throw new ErrorResponse("Bad Request", 400);
+
+      const adminKey = process.env.ADMIN_KEY;
+      const secret = process.env.JWT_SECRET;
+
       if (!adminKey) {
         throw new Error("ADMIN_KEY is not defined in env");
       }
@@ -107,6 +115,36 @@ export default class AdminController extends Controller {
       res.status(200).json(payments);
     } catch (e) {
       AdminController.handleError(e, res);
+    }
+  }
+  //////////////////////////////////////////////
+  /////                                   //////
+  /////              Tickets              //////
+  /////                                   //////
+  //////////////////////////////////////////////
+  async getAllOpenTickets(_req: ReqWithId, res: Response) {
+    try {
+      const tickets = await this.ticketModel.getAllOpen();
+      res.status(200).json(tickets);
+    } catch (error) {
+      AdminController.handleError(error, res);
+    }
+  }
+  async closeTicket(req: ReqWithId, res: Response) {
+    try {
+      await this.ticketModel.closeTicket(parseInt(req.params.id));
+      res.status(200).json("Closed successfully");
+    } catch (error) {
+      AdminController.handleError(error, res);
+    }
+  }
+  async getOneTicket(req: ReqWithId, res: Response) {
+    try {
+      const id = parseInt(req.params.id);
+      const ticket = await this.ticketModel.getById(id);
+      res.status(200).json(ticket);
+    } catch (error) {
+      AdminController.handleError(error, res);
     }
   }
 }

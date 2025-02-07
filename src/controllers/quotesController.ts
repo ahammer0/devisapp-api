@@ -32,18 +32,18 @@ export default class QuotesController extends Controller {
     this.deleteMedia = this.deleteMedia.bind(this);
   }
   async addQuote(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-
-    const newQuote: quote_full_create = req.body;
-    newQuote.expires_at = new Date(
-      newQuote.expires_at ?? new Date(),
-    ).toISOString();
-
-    const id = req.id;
-    newQuote.user_id = id;
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+
+      const newQuote: quote_full_create = req.body;
+      newQuote.expires_at = new Date(
+        newQuote.expires_at ?? new Date(),
+      ).toISOString();
+
+      const id = req.id;
+      newQuote.user_id = id;
       const quote = await this.quoteModel.create(newQuote);
       res.status(201).json(quote);
     } catch (e) {
@@ -90,11 +90,11 @@ export default class QuotesController extends Controller {
     }
   }
   async getAllQuotes(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const id = req.id;
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const id = req.id;
       const quotes = await this.quoteModel.getAllByUserId(id);
       res.status(200).json(quotes);
     } catch (e) {
@@ -102,12 +102,12 @@ export default class QuotesController extends Controller {
     }
   }
   async getOneQuote(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const userId = req.id;
-    const quoteId = parseInt(req.params.id);
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const userId = req.id;
+      const quoteId = parseInt(req.params.id);
       const quote = await this.quoteModel.getByIdByUserId(quoteId, userId);
       res.status(200).json(quote);
     } catch (e) {
@@ -116,17 +116,17 @@ export default class QuotesController extends Controller {
   }
 
   async editQuote(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const userId = req.id;
-    const quoteId = parseInt(req.params.id);
-    const quote = req.body;
-    //formatting dates
-    quote.expires_at = new Date(quote.expires_at);
-    quote.created_at = new Date(quote.created_at);
-
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const userId = req.id;
+      const quoteId = parseInt(req.params.id);
+      const quote = req.body;
+      //formatting dates
+      quote.expires_at = new Date(quote.expires_at);
+      quote.created_at = new Date(quote.created_at);
+
       const updatedQuote = await this.quoteModel.updateByidByUserId(
         quoteId,
         userId,
@@ -138,12 +138,12 @@ export default class QuotesController extends Controller {
     }
   }
   async deleteQuote(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const userId = req.id;
-    const quoteId = parseInt(req.params.id);
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const userId = req.id;
+      const quoteId = parseInt(req.params.id);
       const quote = await this.quoteModel.deleteByIdByUserId(quoteId, userId);
       res.status(200).json(quote);
     } catch (e) {
@@ -151,11 +151,12 @@ export default class QuotesController extends Controller {
     }
   }
   async getQuotePdf(req: ReqWithId, res: Response) {
-    //validating req body
-    const quoteId = parseInt(req.params.id);
-    if (!quoteId || isNaN(quoteId)) throw new ErrorResponse("Bad Request", 400);
-    if (!req.id) throw new ErrorResponse("Authentification Failed", 401);
     try {
+      //validating req body
+      const quoteId = parseInt(req.params.id);
+      if (!quoteId || isNaN(quoteId))
+        throw new ErrorResponse("Bad Request", 400);
+      if (!req.id) throw new ErrorResponse("Authentification Failed", 401);
       const userRes = this.userModel.getById(req.id);
       const quoteRes = this.quoteModel.getByIdByUserId(quoteId, req.id);
       const worksRes = this.workModel.getAllByUserId(req.id);
@@ -180,11 +181,11 @@ export default class QuotesController extends Controller {
     }
   }
   async deleteMedia(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const mediaId = parseInt(req.params.id);
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const mediaId = parseInt(req.params.id);
       await this.quoteModel.deleteMediaByIdByUserId(mediaId, req.id);
       res.status(200).json(true);
     } catch (e) {

@@ -108,26 +108,26 @@ export default class UserController extends Controller {
   }
 
   async updateUser(req: ReqWithId, res: Response) {
-    if (!req.id) {
-      throw new ErrorResponse("Unauthorized: Token not found", 401);
-    }
-    const id: number = req.id;
-    const {
-      email,
-      first_name,
-      last_name,
-      company_name,
-      company_address,
-      siret,
-      ape_code,
-      rcs_code,
-      tva_number,
-      company_type,
-      subscription_plan,
-      quote_infos,
-    } = req.body;
-
     try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const id: number = req.id;
+      const {
+        email,
+        first_name,
+        last_name,
+        company_name,
+        company_address,
+        siret,
+        ape_code,
+        rcs_code,
+        tva_number,
+        company_type,
+        subscription_plan,
+        quote_infos,
+      } = req.body;
+
       let password: string | undefined;
       if (req.body.password) {
         password = await bcrypt.hash(passwordValidator(req.body.password), 10);
