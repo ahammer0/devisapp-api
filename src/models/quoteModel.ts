@@ -478,13 +478,13 @@ export default class QuoteModel extends Model {
   ): quote_media[] {
     const quote_medias = joinResponse.reduce(
       (acc: quote_media[], el: (typeof joinResponse)[0]) => {
-        if (el.quote_media_id) {
-          const quote_media: quote_media = {
-            id: el.quote_media_id,
-            path_name: el.path_name,
-            alt_text: el.alt_text,
-            quote_id: el.quote_id,
-          };
+        const quote_media: quote_media = {
+          id: el.quote_media_id,
+          path_name: el.path_name,
+          alt_text: el.alt_text,
+          quote_id: el.quote_id,
+        };
+        if (el.quote_media_id && !acc.find((el) => el.id === quote_media.id)) {
           acc.push(quote_media);
         }
         return acc;
