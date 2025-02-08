@@ -4,8 +4,6 @@ import { user } from "../types/users";
 import { work } from "../types/works";
 import { toFormDateString } from "./datesHandlers";
 import ReactPDF from "@react-pdf/renderer";
-//@ts-ignore
-import React from "react";
 // Create styles
 const styles = StyleSheet.create({
   page: {

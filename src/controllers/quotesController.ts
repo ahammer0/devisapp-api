@@ -57,7 +57,7 @@ export default class QuotesController extends Controller {
       if (!req.id) {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
-      if (!req?.files?.image || !("data" in req?.files?.image))
+      if (!(req?.files?.image && "data" in req.files.image))
         throw new ErrorResponse("No file in request", 422);
       if (!req.body.quoteId)
         throw new ErrorResponse("No quoteId specified in request", 422);

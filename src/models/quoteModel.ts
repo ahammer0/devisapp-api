@@ -427,7 +427,7 @@ export default class QuoteModel extends Model {
     const files = await fs.readdir("./privateImages/");
     const filesToDelete = files.filter((f) => f.includes(path));
     const promises = [];
-    for (let p of filesToDelete) {
+    for (const p of filesToDelete) {
       const prom = await fs.unlink(`./privateImages/${p}`);
       promises.push(prom);
     }
