@@ -17,6 +17,7 @@ const adminRoutes = (app: Express, db: Connection) => {
   router.get("/tickets/all-opened", controller.getAllOpenTickets);
   router.get("/tickets/:id", controller.getOneTicket);
   router.put("/tickets/close/:id", controller.closeTicket);
+  router.put("/tickets/response/:id", controller.respondToTicket);
 
   router.get("/payments/all", controller.getAllPayments);
 

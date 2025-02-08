@@ -47,7 +47,7 @@ export default class TicketsModel extends Model {
   }
   //////////////////////////////////
   async getById(id: number): Promise<rawTicketWCompanyName> {
-    const sql = `SELECT tickets.*,users.company_name FROM tickets iNNER JOIN users on tickets.user_id=users.id WHERE id=?`;
+    const sql = `SELECT tickets.*,users.company_name FROM tickets iNNER JOIN users on tickets.user_id=users.id WHERE tickets.id=?`;
     const res = await this.db.query(sql, [id]);
     if (res.length === 0) throw new ErrorResponse("No results", 204);
     return res[0];
@@ -57,6 +57,12 @@ export default class TicketsModel extends Model {
   async closeTicket(id: number) {
     const sql = `UPDATE tickets SET status="closed" WHERE id=?`;
     const res = await this.db.query(sql, [id]);
+    if (res.affectedRows === 0)
+      throw new ErrorResponse("Ticket not found", 404);
+  }
+  async setTicketResponse(id: number, response: string) {
+    const sql = `UPDATE tickets SET response=? WHERE id=?`;
+    const res = await this.db.query(sql, [response, id]);
     if (res.affectedRows === 0)
       throw new ErrorResponse("Ticket not found", 404);
   }

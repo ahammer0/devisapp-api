@@ -32,6 +32,7 @@ export default class AdminController extends Controller {
     this.getAllOpenTickets = this.getAllOpenTickets.bind(this);
     this.closeTicket = this.closeTicket.bind(this);
     this.getOneTicket = this.getOneTicket.bind(this);
+    this.respondToTicket = this.respondToTicket.bind(this);
   }
 
   async login(req: Request, res: Response) {
@@ -143,6 +144,17 @@ export default class AdminController extends Controller {
       const id = parseInt(req.params.id);
       const ticket = await this.ticketModel.getById(id);
       res.status(200).json(ticket);
+    } catch (error) {
+      AdminController.handleError(error, res);
+    }
+  }
+  async respondToTicket(req: ReqWithId, res: Response) {
+    try {
+      await this.ticketModel.setTicketResponse(
+        parseInt(req.params.id),
+        req.body.response,
+      );
+      res.status(200).json("Responded successfully");
     } catch (error) {
       AdminController.handleError(error, res);
     }

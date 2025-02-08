@@ -4,7 +4,7 @@ export type ticket = {
   status: "open" | "closed";
   created_at: Date;
   object: string;
-  text_content: string;
+  text_content: string | null;
 };
 export type rawTicket = {
   id: number;
@@ -13,6 +13,7 @@ export type rawTicket = {
   created_at: string;
   object: string;
   text_content: string;
+  response: string | null;
 };
 export type ticketCreate = {
   object: string;
