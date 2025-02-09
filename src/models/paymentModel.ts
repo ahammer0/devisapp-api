@@ -12,7 +12,9 @@ export default class PaymentModel extends Model {
     return recordedItem;
   }
   async getAll(): Promise<payment[] | null> {
-    const res = await this.db.query("SELECT * FROM payments");
+    const res = await this.db.query(
+      "SELECT payments.*,users.company_name as company_name FROM payments INNER JOIN users ON payments.user_id=users.id",
+    );
     if (res.length === 0) {
       throw new ErrorResponse("No results ", 204);
     }
