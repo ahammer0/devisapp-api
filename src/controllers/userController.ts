@@ -10,6 +10,7 @@ import { addCreditRequestBody } from "../types/users";
 import PaymentModel from "../models/paymentModel";
 import { assertDate, isPast } from "../utilities/datesHandlers";
 import { emailValidator, passwordValidator } from "../utilities/validators";
+import svgCaptcha from "svg-captcha";
 
 export default class UserController extends Controller {
   userModel: UserModel;
@@ -79,11 +80,20 @@ export default class UserController extends Controller {
         company_type,
         subscription_plan,
         quote_infos,
+        captcha,
+        captchaToken,
       } = req.body;
       const password = await bcrypt.hash(
         passwordValidator(req.body.password),
         10,
       );
+
+      //check if captcha is valid
+      //@ts-expect-error i will not redefine a new type for each jwt type payload
+      const { value: validCaptcha } = jwt.decode(captchaToken);
+      if (validCaptcha !== captcha) {
+        throw new ErrorResponse("Invalid Captcha", 400);
+      }
 
       const user = await this.userModel.create({
         email: emailValidator(email),
@@ -263,6 +273,26 @@ export default class UserController extends Controller {
       return;
     } catch (e) {
       console.log(e);
+      UserController.handleError(e, res);
+    }
+  }
+  async getCaptcha(req: Request, res: Response) {
+    try {
+      const captcha = svgCaptcha.create({ size: 4 });
+      const payload = { value: captcha.text };
+      const secret: string | undefined = process.env.JWT_SECRET;
+
+      if (
+        secret === null ||
+        secret === undefined ||
+        typeof secret !== "string"
+      ) {
+        throw new Error("JWT_SECRET is not defined in env");
+      }
+      const token = jwt.sign(payload, secret, { expiresIn: "1h" });
+
+      res.status(200).json({ captcha: captcha.data, token });
+    } catch (e) {
       UserController.handleError(e, res);
     }
   }
