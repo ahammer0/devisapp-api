@@ -83,8 +83,7 @@ export default class UserModel extends Model {
       await this.db.query(sqlUsers, id);
 
       await this.db.commit();
-    } catch (e) {
-      console.log(e);
+    } catch {
       await this.db.rollback();
       await this.db.commit();
       throw new ErrorResponse("Could not delete user", 500);
