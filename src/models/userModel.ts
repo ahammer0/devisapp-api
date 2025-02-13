@@ -65,9 +65,29 @@ export default class UserModel extends Model {
   }
 
   async delete(id: number): Promise<boolean> {
-    const res = await this.db.query("DELETE FROM users WHERE id = ?", id);
-    if (res.affectedRows !== 1) {
-      throw new ErrorResponse("Could not delete user", 400);
+    const sqlCustomers = `delete from customers where user_id=?`;
+    const sqlQuotes = "delete from quotes where user_id=?";
+    //quote_elements will cascade
+    //quote_medias will cascade
+    const sqlTickets = "delete from tickets where user_id=?";
+    const sqlWorks = "delete from works where user_id=?";
+    const sqlUsers = "update users set account_status='deleted' where id=?";
+
+    try {
+      await this.db.beginTransaction();
+
+      await this.db.query(sqlQuotes, id);
+      await this.db.query(sqlCustomers, id);
+      await this.db.query(sqlTickets, id);
+      await this.db.query(sqlWorks, id);
+      await this.db.query(sqlUsers, id);
+
+      await this.db.commit();
+    } catch (e) {
+      console.log(e);
+      await this.db.rollback();
+      await this.db.commit();
+      throw new ErrorResponse("Could not delete user", 500);
     }
     return true;
   }

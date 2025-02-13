@@ -26,6 +26,7 @@ export default class UserController extends Controller {
     this.updateUser = this.updateUser.bind(this);
     this.checkToken = this.checkToken.bind(this);
     this.addAccountCredit = this.addAccountCredit.bind(this);
+    this.deleteUser = this.deleteUser.bind(this);
   }
 
   //TODO refacto to take same time if no email found
@@ -163,6 +164,19 @@ export default class UserController extends Controller {
 
       const user = await this.userModel.update(id, userToSave);
       res.status(200).json({ ...user, password: undefined });
+    } catch (e) {
+      UserController.handleError(e, res);
+    }
+  }
+  async deleteUser(req: ReqWithId, res: Response) {
+    try {
+      if (!req.id) {
+        throw new ErrorResponse("Unauthorized: Token not found", 401);
+      }
+      const id: number = req.id;
+      const resp = await this.userModel.delete(id);
+      console.log(resp);
+      res.status(200).json({ message: "Utilisateur supprimé avec succès" });
     } catch (e) {
       UserController.handleError(e, res);
     }
