@@ -6,7 +6,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import Controller from "../utilities/Controller";
 import ErrorResponse from "../utilities/ErrorResponse";
 import { ReqWithId } from "../types/misc";
-import { addCreditRequestBody } from "../types/users";
+import { addCreditRequestBody, user } from "../types/users";
 import PaymentModel from "../models/paymentModel";
 import { assertDate, isPast } from "../utilities/datesHandlers";
 import { emailValidator, passwordValidator } from "../utilities/validators";
@@ -29,16 +29,22 @@ export default class UserController extends Controller {
     this.deleteUser = this.deleteUser.bind(this);
   }
 
-  //TODO refacto to take same time if no email found
+  //should take same time whether the user exists or not
   async login(req: Request, res: Response) {
     const { email, password } = req.body;
+    const secret: string | undefined = process.env.JWT_SECRET;
+
+    if (secret === null || secret === undefined || typeof secret !== "string") {
+      throw new Error("JWT_SECRET is not defined in env");
+    }
     try {
-      const user = await this.userModel.getByEmail(email);
-      if (!user) {
-        res.status(401).json({ message: "Invalid credentials" });
-        return;
+      let user: user | null;
+      try {
+        user = await this.userModel.getByEmail(email);
+      } catch {
+        user = null;
       }
-      const isMatch = bcrypt.compareSync(password, user.password);
+      const isMatch = bcrypt.compareSync(password, user?.password ?? "");
       if (user && isMatch) {
         const userWithoutPassword = {
           ...user,
@@ -46,16 +52,15 @@ export default class UserController extends Controller {
         };
 
         const payload = { id: user.id, role: "user" };
-        const secret: string | undefined = process.env.JWT_SECRET;
-
-        if (
-          secret === null ||
-          secret === undefined ||
-          typeof secret !== "string"
-        ) {
-          throw new Error("JWT_SECRET is not defined in env");
-        }
         const token = jwt.sign(payload, secret, { expiresIn: "1d" });
+
+        if (user.account_status === "blocked") {
+          res.status(401).json({ message: "Your account is blocked" });
+          return;
+        } else if (user.account_status === "deleted") {
+          res.status(401).json({ message: "Invalid credentials" });
+          return;
+        }
 
         res.status(200).json({ user: userWithoutPassword, token });
       } else {
@@ -108,7 +113,7 @@ export default class UserController extends Controller {
         rcs_code,
         tva_number,
         company_type,
-        account_status: "waiting",
+        account_status: "valid",
         subscription_plan: subscription_plan ?? "free",
         quote_infos,
       });
@@ -174,8 +179,8 @@ export default class UserController extends Controller {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
       const id: number = req.id;
-      const resp = await this.userModel.delete(id);
-      console.log(resp);
+      await this.userModel.delete(id);
+
       res.status(200).json({ message: "Utilisateur supprimé avec succès" });
     } catch (e) {
       UserController.handleError(e, res);
@@ -285,11 +290,10 @@ export default class UserController extends Controller {
       res.status(200).json(user);
       return;
     } catch (e) {
-      console.log(e);
       UserController.handleError(e, res);
     }
   }
-  async getCaptcha(req: Request, res: Response) {
+  async getCaptcha(_req: Request, res: Response) {
     try {
       const captcha = svgCaptcha.create({ size: 4 });
       const payload = { value: captcha.text };

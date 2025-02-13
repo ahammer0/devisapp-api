@@ -18,7 +18,7 @@ export default class UserModel extends Model {
         "code" in e &&
         e.code === "ER_DUP_ENTRY"
       ) {
-        throw new ErrorResponse("Email already exists", 400);
+        throw new Error("Email already exists");
       } else {
         throw e;
       }
