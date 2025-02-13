@@ -278,7 +278,6 @@ export default class UserController extends Controller {
       // update  user's expires_at
       await this.userModel.update(req.id, {
         expires_at: newDate,
-        subscription_plan: "paid", // once the user has paid, its account is considered as paid
       });
 
       // respond 200 with updated user

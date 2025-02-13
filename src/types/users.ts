@@ -11,8 +11,7 @@ export type user = {
   rcs_code: string;
   tva_number: string;
   company_type: "Individuelle" | "SAS" | "SARL" | "EURL";
-  account_status: "valid" | "blocked" | "deleted" | "waiting";
-  subscription_plan: "free" | "paid";
+  account_status: "valid" | "blocked" | "deleted";
   created_at: Date; //timestamp
   expires_at: Date; //timestamp
   quote_infos: string;
@@ -29,8 +28,7 @@ export type userCreate = {
   rcs_code?: string;
   tva_number?: string;
   company_type: "Individuelle" | "SAS" | "SARL" | "EURL";
-  account_status: "valid" | "blocked" | "deleted" | "waiting";
-  subscription_plan: "free" | "paid";
+  account_status: "valid" | "blocked" | "deleted";
   created_at?: Date; //timestamp
   expires_at?: Date; //timestamp
   quote_infos?: string;
