@@ -35,6 +35,9 @@ mysql
     workRoutes(app, connection);
     adminRoutes(app, connection);
     ticketsRoutes(app, connection);
+    //to keep db connection active
+    //TODO change for connection pool but requires to handle connection release for each connection
+    setInterval(async () => await connection.query("SELECT 1"), 10000);
   })
   .catch((err) => console.log(err));
 
