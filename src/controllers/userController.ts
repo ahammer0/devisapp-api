@@ -84,7 +84,6 @@ export default class UserController extends Controller {
         rcs_code,
         tva_number,
         company_type,
-        subscription_plan,
         quote_infos,
         captcha,
         captchaToken,
@@ -114,7 +113,6 @@ export default class UserController extends Controller {
         tva_number,
         company_type,
         account_status: "valid",
-        subscription_plan: subscription_plan ?? "free",
         quote_infos,
       });
       res.status(201).json({ ...user, password: undefined });
@@ -140,7 +138,6 @@ export default class UserController extends Controller {
         rcs_code,
         tva_number,
         company_type,
-        subscription_plan,
         quote_infos,
       } = req.body;
 
@@ -160,7 +157,6 @@ export default class UserController extends Controller {
         rcs_code,
         tva_number,
         company_type,
-        subscription_plan,
         quote_infos,
       };
       if (!password) {
