@@ -5,6 +5,8 @@ type ErrorType =
   | "not_number"
   | "not_boolean"
   | "not_date_object"
+  | "not_array"
+  | "not_object"
   | "wrong_type"
   | "out_of_range"
   | "missing_key"

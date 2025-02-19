@@ -22,7 +22,7 @@ export default abstract class Controller {
       return;
     }
     if (err instanceof InputError) {
-      res.status(422).json({ message: err.message });
+      res.status(422).json({ message: err.message, type: err.type });
       if (env === "dev")
         console.error("\x1b[31m", "Error: ", err.message, "\x1b[0m");
       return;
