@@ -1,4 +1,4 @@
-export const assertDate = (date: string | Date) => {
+export const assertDate = (date: unknown) => {
   if (date instanceof Date) {
     return date;
   }

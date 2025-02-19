@@ -1,5 +1,8 @@
 import { Schema } from "node:inspector/promises";
 import * as validators from "./validators";
+import { assertDate } from "./datesHandlers";
+
+//TODO add enum types
 
 export type Schema = {
   [key: string]: DataRules;
@@ -134,6 +137,14 @@ export default class DTO {
           DTO.validateBoolean(data[key], key);
           break;
         case "date":
+          try {
+            data[key] = assertDate(data[key]);
+          } catch {
+            throw new validators.InputError(
+              `la date ${key} fourrnie n'est pas valide`,
+              "not_date_object",
+            );
+          }
           DTO.validateDate(data[key], rules, key);
           break;
       }
