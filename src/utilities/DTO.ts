@@ -22,6 +22,7 @@ interface StringRules extends BaseRules {
 }
 interface NumberRules extends BaseRules {
   type: "number";
+  float?: boolean;
   min?: number;
   max?: number;
 }
@@ -128,6 +129,20 @@ export default class DTO {
           DTO.validateString(data[key], rules, key);
           break;
         case "number":
+          try {
+            if (typeof data[key] === "string") {
+              if (rules.float === true) {
+                data[key] = parseFloat(data[key]);
+              } else {
+                data[key] = parseInt(data[key]);
+              }
+            }
+          } catch {
+            throw new validators.InputError(
+              `la clé ${key} devrait etre un nombre`,
+              "not_number",
+            );
+          }
           DTO.validateNumber(data[key], rules, key);
           break;
         case "password":
