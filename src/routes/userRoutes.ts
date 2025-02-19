@@ -10,7 +10,6 @@ const userRoutes = (app: Express, db: Connection) => {
   app.post("/register", controller.register);
   app.get("/checkToken", controller.checkToken);
   app.put("/user", requireAuth, controller.updateUser);
-  app.post("/addCredit", requireAuth, controller.addAccountCredit);
   app.get("/captcha", controller.getCaptcha);
   app.delete("/user", requireAuth, controller.deleteUser);
 };

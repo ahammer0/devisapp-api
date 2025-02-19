@@ -6,9 +6,8 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import Controller from "../utilities/Controller";
 import ErrorResponse from "../utilities/ErrorResponse";
 import { ReqWithId } from "../types/misc";
-import { addCreditRequestBody, user } from "../types/users";
+import { user } from "../types/users";
 import PaymentModel from "../models/paymentModel";
-import { assertDate, isPast } from "../utilities/datesHandlers";
 import { emailValidator, passwordValidator } from "../utilities/validators";
 import svgCaptcha from "svg-captcha";
 
@@ -25,7 +24,6 @@ export default class UserController extends Controller {
     this.register = this.register.bind(this);
     this.updateUser = this.updateUser.bind(this);
     this.checkToken = this.checkToken.bind(this);
-    this.addAccountCredit = this.addAccountCredit.bind(this);
     this.deleteUser = this.deleteUser.bind(this);
   }
 
@@ -232,63 +230,6 @@ export default class UserController extends Controller {
     }
   }
 
-  async addAccountCredit(req: ReqWithId, res: Response) {
-    try {
-      const body = req.body as addCreditRequestBody;
-      // check request conformity
-      if (!body || !(body.plan === 3 || body.plan === 12)) {
-        throw new ErrorResponse("Bad Request", 400);
-      }
-      if (!req.id) {
-        throw new Error(
-          "User id not fount in request object. This Controller has to be preceded by auth middleware",
-        );
-      }
-      const currentUser = await this.userModel.getById(req.id);
-      if (!currentUser) {
-        throw new Error(
-          `User not found in db, given id :{req.id} should exist`,
-        );
-      }
-      // register payment in db
-      let amount: number;
-      switch (body.plan) {
-        case 3:
-          amount = 30;
-          break;
-        case 12:
-          amount = 100;
-          break;
-        default:
-          throw new Error("amount not registered");
-      }
-      await this.paymentModel.create({
-        user_id: req.id,
-        amount: amount,
-      });
-
-      // creating new date
-      let newDate: Date;
-      if (isPast(currentUser.expires_at)) {
-        newDate = new Date();
-      } else {
-        newDate = assertDate(currentUser.expires_at);
-      }
-      newDate.setMonth(newDate.getMonth() + body.plan);
-
-      // update  user's expires_at
-      await this.userModel.update(req.id, {
-        expires_at: newDate,
-      });
-
-      // respond 200 with updated user
-      const user = await this.userModel.getById(req.id);
-      res.status(200).json(user);
-      return;
-    } catch (e) {
-      UserController.handleError(e, res);
-    }
-  }
   async getCaptcha(_req: Request, res: Response) {
     try {
       const captcha = svgCaptcha.create({ size: 4 });

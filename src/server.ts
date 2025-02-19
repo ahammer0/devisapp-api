@@ -9,6 +9,7 @@ import userRoutes from "./routes/userRoutes";
 import ticketsRoutes from "./routes/ticketsRoutes";
 import workRoutes from "./routes/workRoutes";
 import adminRoutes from "./routes/adminRoutes";
+import paymentsRoutes from "./routes/paymentRoutes";
 
 config();
 
@@ -35,6 +36,7 @@ mysql
     workRoutes(app, connection);
     adminRoutes(app, connection);
     ticketsRoutes(app, connection);
+    paymentsRoutes(app, connection);
     //to keep db connection active
     //TODO change for connection pool but requires to handle connection release for each connection
     setInterval(async () => await connection.query("SELECT 1"), 10000);
