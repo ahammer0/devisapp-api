@@ -11,8 +11,16 @@ export const userUpdate: Schema = {
   ape_code: { type: "string", maxLength: 20, optional: true },
   rcs_code: { type: "string", maxLength: 20, optional: true },
   tva_number: { type: "string", maxLength: 20, optional: true },
-  company_type: { type: "string", optional: true },
-  account_status: { type: "string", optional: true },
+  company_type: {
+    type: "enum",
+    values: ["Individuelle", "SAS", "SARL", "EURL"],
+    optional: true,
+  },
+  account_status: {
+    type: "enum",
+    values: ["valid", "blocked", "deleted"],
+    optional: true,
+  },
   created_at: { type: "date", optional: true },
   expires_at: { type: "date", optional: true },
   quote_infos: { type: "string", optional: true },

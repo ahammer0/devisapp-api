@@ -10,21 +10,6 @@ export type Schema = {
 type Data = {
   [key: string]: unknown;
 };
-// type OutputData = {
-//   [K in keyof Schema]: Schema[K] extends StringRules
-//     ? string
-//     : Schema[K] extends NumberRules
-//       ? number
-//       : Schema[K] extends BooleanRules
-//         ? boolean
-//         : Schema[K] extends ArrayRules
-//           ? OutputData[]
-//           : Schema[K] extends ObjectRules
-//             ? { [key in keyof Schema[K]["element"]]: OutputData[key] }
-//             : Schema[K] extends DateRules
-//               ? Date
-//               : never;
-// };
 interface BaseRules {
   optional?: boolean;
   nullable?: boolean;
@@ -58,11 +43,16 @@ interface ArrayRules extends BaseRules {
   minLength?: number;
   maxLength?: number;
 }
+interface EnumRules extends BaseRules {
+  type: "enum";
+  values: Array<unknown>;
+}
 type DataRules =
   | StringRules
   | NumberRules
   | ObjectRules
   | ArrayRules
+  | EnumRules
   | DateRules
   | BooleanRules;
 
@@ -189,6 +179,9 @@ export default class DTO {
           }
           data[key] = DTO.validateDate(data[key], rules, key);
           break;
+        case "enum":
+          DTO.validateEnum(data[key], rules, key);
+          break;
       }
     }
   }
@@ -212,6 +205,14 @@ export default class DTO {
     arr.forEach((el) => {
       DTO.validate(el as Data, type.element);
     });
+  }
+  static validateEnum(en: unknown, type: EnumRules, key: string) {
+    if (!type.values.includes(en)) {
+      throw new validators.InputError(
+        `la clé ${key} devrait etre dans l' enum ${type.values.join()}`,
+        "out_of_range",
+      );
+    }
   }
   static validateString(str: unknown, type: StringRules, key: string): string {
     if (typeof str !== "string") {
