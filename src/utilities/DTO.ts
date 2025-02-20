@@ -7,13 +7,27 @@ import { assertDate } from "./datesHandlers";
 export type Schema = {
   [key: string]: DataRules;
 };
-type DataType = string | number | boolean | Date | Data;
-type GeneralType = DataType | Array<DataType>;
 type Data = {
-  [key: string]: GeneralType;
+  [key: string]: unknown;
 };
+// type OutputData = {
+//   [K in keyof Schema]: Schema[K] extends StringRules
+//     ? string
+//     : Schema[K] extends NumberRules
+//       ? number
+//       : Schema[K] extends BooleanRules
+//         ? boolean
+//         : Schema[K] extends ArrayRules
+//           ? OutputData[]
+//           : Schema[K] extends ObjectRules
+//             ? { [key in keyof Schema[K]["element"]]: OutputData[key] }
+//             : Schema[K] extends DateRules
+//               ? Date
+//               : never;
+// };
 interface BaseRules {
   optional?: boolean;
+  nullable?: boolean;
 }
 interface StringRules extends BaseRules {
   type: "string" | "email" | "password";
@@ -99,7 +113,20 @@ export default class DTO {
           "missing_key",
         );
       }
+      if (data[key] === null && rules.nullable) continue;
+      if (data[key] === null) {
+        throw new validators.InputError(
+          `La clef ${key} est requise mais elle est null`,
+          "missing_key",
+        );
+      }
 
+      if (typeof data[key] === "object" && DTO.isEmptyObject(data[key])) {
+        throw new validators.InputError(
+          `La clef ${key} est requise mais elle est vide`,
+          "missing_key",
+        );
+      }
       if (rules.type === "array") {
         if (DTO.isArray(data[key])) {
           DTO.validateArray(data[key], rules, key);
@@ -123,10 +150,10 @@ export default class DTO {
       //else it's a simple value check it
       switch (rules.type) {
         case "email":
-          DTO.validateEmail(data[key], rules, key);
+          data[key] = DTO.validateEmail(data[key], rules, key);
           break;
         case "string":
-          DTO.validateString(data[key], rules, key);
+          data[key] = DTO.validateString(data[key], rules, key);
           break;
         case "number":
           try {
@@ -143,13 +170,13 @@ export default class DTO {
               "not_number",
             );
           }
-          DTO.validateNumber(data[key], rules, key);
+          data[key] = DTO.validateNumber(data[key], rules, key) as number;
           break;
         case "password":
-          DTO.validatePassword(data[key], rules, key);
+          data[key] = DTO.validatePassword(data[key], rules, key);
           break;
         case "boolean":
-          DTO.validateBoolean(data[key], key);
+          data[key] = DTO.validateBoolean(data[key], key);
           break;
         case "date":
           try {
@@ -160,12 +187,12 @@ export default class DTO {
               "not_date_object",
             );
           }
-          DTO.validateDate(data[key], rules, key);
+          data[key] = DTO.validateDate(data[key], rules, key);
           break;
       }
     }
   }
-  static validateArray(arr: DataType[], type: ArrayRules, key: string) {
+  static validateArray(arr: unknown[], type: ArrayRules, key: string) {
     if (!(arr instanceof Array)) {
       throw new validators.InputError(`expecting array in ${key}`, "not_array");
     }
@@ -186,7 +213,7 @@ export default class DTO {
       DTO.validate(el as Data, type.element);
     });
   }
-  static validateString(str: GeneralType, type: StringRules, key: string) {
+  static validateString(str: unknown, type: StringRules, key: string): string {
     if (typeof str !== "string") {
       throw new validators.InputError(
         `le champ ${key} doit être une chaine de caractères`,
@@ -206,8 +233,9 @@ export default class DTO {
         "out_of_range",
       );
     }
+    return str as string;
   }
-  static validateNumber(num: GeneralType, type: NumberRules, key: string) {
+  static validateNumber(num: unknown, type: NumberRules, key: string): number {
     if (typeof num !== "number") {
       throw new validators.InputError(
         `le champ ${key} doit etre un nombre`,
@@ -226,16 +254,18 @@ export default class DTO {
         "out_of_range",
       );
     }
+    return num as number;
   }
-  static validateBoolean(bool: GeneralType, key: string) {
+  static validateBoolean(bool: unknown, key: string): boolean {
     if (typeof bool !== "boolean") {
       throw new validators.InputError(
         `le champ ${key} doit etre un boolean`,
         "not_boolean",
       );
     }
+    return bool;
   }
-  static validateDate(date: GeneralType, type: DateRules, key: string) {
+  static validateDate(date: unknown, type: DateRules, key: string): Date {
     if (!(date instanceof Date)) {
       throw new validators.InputError(
         `la date ${key} n'est pas un Date`,
@@ -254,8 +284,9 @@ export default class DTO {
         "out_of_range",
       );
     }
+    return date;
   }
-  static validateEmail(str: GeneralType, type: StringRules, key: string) {
+  static validateEmail(str: unknown, type: StringRules, key: string): string {
     if (typeof str !== "string") {
       throw new validators.InputError(
         "l' email fourni n' est pas valide,champ: " + key,
@@ -264,8 +295,13 @@ export default class DTO {
     }
     DTO.validateString(str, type, key);
     validators.emailValidator(str);
+    return str;
   }
-  static validatePassword(str: GeneralType, type: StringRules, key: string) {
+  static validatePassword(
+    str: unknown,
+    type: StringRules,
+    key: string,
+  ): string {
     if (typeof str !== "string") {
       throw new validators.InputError(
         `le champ ${key} doit être une chaine de caractères`,
@@ -274,10 +310,10 @@ export default class DTO {
     }
     DTO.validateString(str, type, key);
     validators.passwordValidator(str);
+    return str;
   }
 
-  //eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static isObject(value: any) {
+  static isObject(value: unknown) {
     return (
       typeof value === "object" &&
       !Array.isArray(value) &&
@@ -285,8 +321,11 @@ export default class DTO {
     );
   }
 
-  //eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static isArray(value: any) {
+  static isArray(value: unknown) {
     return Array.isArray(value);
+  }
+
+  static isEmptyObject(obj: object) {
+    return Object.keys(obj).length === 0;
   }
 }
