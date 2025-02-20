@@ -6,6 +6,7 @@ import ErrorResponse from "../utilities/ErrorResponse";
 import UserModel from "../models/userModel";
 import PaymentModel from "../models/paymentModel";
 import Stripe from "stripe";
+import DTO from "../utilities/DTO";
 
 export default class PaymentsController extends Controller {
   userModel: UserModel;
@@ -20,7 +21,6 @@ export default class PaymentsController extends Controller {
     this.validatePayment = this.validatePayment.bind(this);
   }
   async createPaymentIntent(req: ReqWithId, res: Response) {
-    const amount = parseInt(req.body.amount);
     const stripeSecret = process.env.STRIPE_PRIV_KEY;
     if (typeof stripeSecret !== "string") {
       throw new Error("STRIPE_PRIV_KEY is not defined in env");
@@ -31,10 +31,11 @@ export default class PaymentsController extends Controller {
 
     const stripe = new Stripe(stripeSecret);
     try {
-      if (!(amount === 30 || amount === 100)) {
-        res.status(400).json({ message: "Invalid payment amount" });
-        return;
-      }
+      const bodyDTO = new DTO(req.body, {
+        amount: { type: "enum", values: [30, 100] },
+      });
+      const amount = bodyDTO.data.amount as 30 | 100;
+
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount * 100,
         currency: "eur",
@@ -62,9 +63,11 @@ export default class PaymentsController extends Controller {
     if (!req.id) {
       throw new ErrorResponse("Unauthorized: Token not found", 401);
     }
-    const pi = req.body.payment_intent;
 
     try {
+      const bodyDTO = new DTO(req.body, { payment_intent: { type: "string" } });
+      const pi = bodyDTO.data.payment_intent as string;
+
       const stripe = new Stripe(stripeSecret);
       const paymentIntent = await stripe.paymentIntents.retrieve(pi);
       if (paymentIntent.status !== "succeeded") {
