@@ -48,38 +48,56 @@ type OptionalRules = { optional: true } | { optional?: false | undefined };
 type NullableRules = { nullable: true } | { nullable?: false | undefined };
 
 //have to be one of theses
-type StringRules = {
-  type: Type.String | Type.Email | Type.Password;
+interface BaseStringRules {
   minLength?: number;
   maxLength?: number;
-};
-type BooleanRules = { type: Type.Boolean };
+}
+interface StringRules extends BaseStringRules {
+  type: Type.String | Type.Email | Type.Password;
+}
 
-type NumberRules = {
-  type: Type.Number;
+interface BaseBooleanRules {
+  type: Type.Boolean;
+}
+interface BooleanRules extends BaseBooleanRules {} //eslint-disable-line
+
+interface BaseNumberRules {
   float?: boolean;
   min?: number;
   max?: number;
-};
-type DateRules = {
-  type: Type.Date;
+}
+interface NumberRules extends BaseNumberRules {
+  type: Type.Number;
+}
+
+interface BaseDateRules {
   minDate?: Date;
   maxDate?: Date;
-};
-type ObjectRules = {
-  type: Type.Object;
+}
+interface DateRules extends BaseDateRules {
+  type: Type.Date;
+}
+
+interface BaseObjectRules {
   element: new (data: object) => Schema | { [key: string]: RulesType };
-};
-type ArrayRules = {
-  type: Type.Array;
+}
+interface ObjectRules extends BaseObjectRules {
+  type: Type.Object;
+}
+interface BaseArrayRules {
   element: RulesType;
   minLength?: number;
   maxLength?: number;
-};
-type EnumRules = {
-  type: Type.Enum;
+}
+interface ArrayRules extends BaseArrayRules {
+  type: Type.Array;
+}
+interface BaseEnumRules {
   values: Array<unknown>;
-};
+}
+interface EnumRules extends BaseEnumRules {
+  type: Type.Enum;
+}
 
 export type RulesType = OptionalRules &
   NullableRules &
@@ -182,7 +200,7 @@ export default class DTO {
     }
   }
 
-  static parseObject(obj: unknown, rule: ObjectRules) {
+  static parseObject(obj: unknown, rule: BaseObjectRules) {
     DTO.assertObject(obj);
     if (DTO.isFunction(rule.element)) {
       return new rule.element(obj);
@@ -200,7 +218,7 @@ export default class DTO {
     }
     return obj;
   }
-  static parseArray(arr: unknown, rule: ArrayRules) {
+  static parseArray(arr: unknown, rule: BaseArrayRules) {
     if (!(arr instanceof Array)) {
       throw new InputError(`-->expecting array, given ${arr}`, "not_array");
     }
@@ -232,7 +250,7 @@ export default class DTO {
     return retArr;
   }
 
-  static validateEnum(en: unknown, type: EnumRules) {
+  static validateEnum(en: unknown, type: BaseEnumRules) {
     if (!type.values.includes(en)) {
       throw new InputError(
         `-->value not in enum: ${type.values.join()}, given:${en}`,
@@ -241,18 +259,18 @@ export default class DTO {
     }
     return en;
   }
-  static validateString(str: unknown, type: StringRules) {
+  static validateString(str: unknown, type?: BaseStringRules) {
     if (typeof str === "number") return str.toString();
     if (typeof str !== "string") {
       throw new InputError(`-->not string, given: ${str}`, "not_string");
     }
-    if (type.minLength && str.length < type.minLength) {
+    if (type?.minLength && str.length < type.minLength) {
       throw new InputError(
         `-->Should be longer than ${type.minLength} chars, given length: ${str.length}`,
         "out_of_range",
       );
     }
-    if (type.maxLength && str.length > type.maxLength) {
+    if (type?.maxLength && str.length > type.maxLength) {
       throw new InputError(
         `-->Should be shorter than ${type.maxLength} chars, given length: ${str.length}`,
         "out_of_range",
@@ -260,9 +278,9 @@ export default class DTO {
     }
     return str;
   }
-  static validateNumber(num: unknown, type: NumberRules) {
+  static validateNumber(num: unknown, type?: BaseNumberRules) {
     if (typeof num === "string") {
-      if (type.float) {
+      if (type?.float) {
         const withoutComma = num.replace(",", ".") as string;
         num = parseFloat(withoutComma);
       } else {
@@ -272,13 +290,13 @@ export default class DTO {
     if (typeof num !== "number" || isNaN(num)) {
       throw new InputError(`-->Should be number, given: ${num}`, "not_number");
     }
-    if (type.min && num < type.min) {
+    if (type?.min && num < type.min) {
       throw new InputError(
         `-->Number should be more than ${type.min}, given: ${num}`,
         "out_of_range",
       );
     }
-    if (type.max && num > type.max) {
+    if (type?.max && num > type.max) {
       throw new InputError(
         `-->Number should be less than ${type.min}, given: ${num}`,
         "out_of_range",
@@ -295,7 +313,7 @@ export default class DTO {
     }
     return bool;
   }
-  static validateDate(date: unknown, type: DateRules) {
+  static validateDate(date: unknown, type?: BaseDateRules) {
     // string parsable : 1995-12-17T03:24:00
     // TODO: test this
     if (typeof date === "string") {
@@ -319,13 +337,13 @@ export default class DTO {
     if (!(date instanceof Date)) {
       throw new InputError(`-->Should be Date object`, "not_date_object");
     }
-    if (type.minDate && date.getTime() < type.minDate.getTime()) {
+    if (type?.minDate && date.getTime() < type.minDate.getTime()) {
       throw new InputError(
         `-->Date sould be after ${type.minDate}, given:${date}`,
         "out_of_range",
       );
     }
-    if (type.maxDate && date.getTime() > type.maxDate.getTime()) {
+    if (type?.maxDate && date.getTime() > type.maxDate.getTime()) {
       throw new InputError(
         `-->Date should be before ${type.maxDate}, given:${date} `,
         "out_of_range",
@@ -333,7 +351,7 @@ export default class DTO {
     }
     return date;
   }
-  static validateEmail(str: unknown, type: StringRules) {
+  static validateEmail(str: unknown, type?: BaseStringRules) {
     if (typeof str !== "string") {
       throw new InputError("-->Email should be string type", "invalid_email");
     }
@@ -344,7 +362,7 @@ export default class DTO {
     }
     return str;
   }
-  static validatePassword(str: unknown, type: StringRules) {
+  static validatePassword(str: unknown, type?: BaseStringRules) {
     if (typeof str !== "string") {
       throw new InputError(`-->Password should be string type`, "not_string");
     }
