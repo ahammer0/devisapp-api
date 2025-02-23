@@ -21,6 +21,7 @@
     "promise-mysql": "^5.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "reflect-metadata": "^0.2.2",
     "sharp": "^0.33.5",
     "stripe": "^17.6.0",
     "svg-captcha": "^1.4.0"

@@ -1,4 +1,4 @@
-type ErrorType =
+export type ErrorType =
   | "invalid_email"
   | "insecure_password"
   | "not_string"
@@ -10,13 +10,16 @@ type ErrorType =
   | "wrong_type"
   | "out_of_range"
   | "missing_key"
+  | "unknown_type"
   | "too_much_keys";
 
 export class InputError extends Error {
+  errorType = "validators.InputError";
   type?: ErrorType;
   constructor(message: string, type?: ErrorType) {
     super(message);
     this.type = type;
+    Object.setPrototypeOf(this, InputError.prototype);
   }
 }
 

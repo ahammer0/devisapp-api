@@ -1,332 +1,445 @@
-import { Schema } from "node:inspector/promises";
-import * as validators from "./validators";
-import { assertDate } from "./datesHandlers";
+import "reflect-metadata";
 
-//TODO add enum types
+type ErrorType =
+  | "invalid_email"
+  | "insecure_password"
+  | "not_string"
+  | "not_number"
+  | "not_boolean"
+  | "not_date_object"
+  | "not_date_string"
+  | "not_array"
+  | "not_object"
+  | "wrong_type"
+  | "out_of_range"
+  | "missing_key"
+  | "unknown_type"
+  | "too_much_keys";
 
-export type Schema = {
-  [key: string]: DataRules;
-};
-type Data = {
-  [key: string]: unknown;
-};
-interface BaseRules {
-  optional?: boolean;
-  nullable?: boolean;
+class InputError extends Error {
+  errorType = "InputError";
+  type?: ErrorType;
+  constructor(message: string, type?: ErrorType) {
+    super(message);
+    this.type = type;
+    Object.setPrototypeOf(this, InputError.prototype);
+  }
 }
-interface StringRules extends BaseRules {
-  type: "string" | "email" | "password";
+
+export enum Type {
+  String = "string",
+  Email = "email",
+  Password = "password",
+  Boolean = "boolean",
+  Date = "date",
+  Number = "number",
+  Object = "object",
+  Array = "array",
+  Enum = "enum",
+}
+/////////////////////////////////////////////////////////////////////
+//                                                                 //
+//            Rules                                                //
+//                                                                 //
+/////////////////////////////////////////////////////////////////////
+
+//props for all rules
+type OptionalRules = { optional: true } | { optional?: false | undefined };
+type NullableRules = { nullable: true } | { nullable?: false | undefined };
+
+//have to be one of theses
+type StringRules = {
+  type: Type.String | Type.Email | Type.Password;
   minLength?: number;
   maxLength?: number;
-}
-interface NumberRules extends BaseRules {
-  type: "number";
+};
+type BooleanRules = { type: Type.Boolean };
+
+type NumberRules = {
+  type: Type.Number;
   float?: boolean;
   min?: number;
   max?: number;
-}
-interface DateRules extends BaseRules {
-  type: "date";
+};
+type DateRules = {
+  type: Type.Date;
   minDate?: Date;
   maxDate?: Date;
-}
-interface BooleanRules extends BaseRules {
-  type: "boolean";
-}
-interface ObjectRules extends BaseRules {
-  type: "object";
-  element: Schema;
-}
-interface ArrayRules extends BaseRules {
-  type: "array";
-  element: Schema;
+};
+type ObjectRules = {
+  type: Type.Object;
+  element: new (data: object) => Schema | { [key: string]: RulesType };
+};
+type ArrayRules = {
+  type: Type.Array;
+  element: RulesType;
   minLength?: number;
   maxLength?: number;
-}
-interface EnumRules extends BaseRules {
-  type: "enum";
+};
+type EnumRules = {
+  type: Type.Enum;
   values: Array<unknown>;
-}
-type DataRules =
-  | StringRules
-  | NumberRules
-  | ObjectRules
-  | ArrayRules
-  | EnumRules
-  | DateRules
-  | BooleanRules;
+};
 
-interface Options {
-  enforceKeys?: boolean;
-}
+export type RulesType = OptionalRules &
+  NullableRules &
+  (
+    | StringRules
+    | BooleanRules
+    | NumberRules
+    | DateRules
+    | ObjectRules
+    | ArrayRules
+    | EnumRules
+  );
+
+type getArrayRulesType<T extends ArrayRules> = getBaseTypeFromRule<
+  T["element"]
+>[];
+
+//prettier-ignore
+type getBaseTypeFromRule<T extends RulesType> = 
+  T extends StringRules ? string :
+  T extends BooleanRules ? boolean :
+  T extends NumberRules ? number :
+  T extends DateRules ? Date :
+  T extends ArrayRules ? getArrayRulesType<T>:
+  T extends EnumRules ? T["values"][number] :
+  T extends ObjectRules ? object : never
+;
+type handleOptional<T extends RulesType> = T extends { optional: true }
+  ? undefined | getBaseTypeFromRule<T>
+  : getBaseTypeFromRule<T>;
+/////////////////////////////////////////////////////////////////////
+//                                                                 //
+//            getTypeFromRule                                      //
+//                                                                 //
+/////////////////////////////////////////////////////////////////////
+
+type getTypeFromRule<T extends RulesType> = T extends { nullable: true }
+  ? null | handleOptional<T>
+  : handleOptional<T>;
+
+/////////////////////////////////////////////////////////////////////
+//                                                                 //
+//            Schema type generation                               //
+//                                                                 //
+/////////////////////////////////////////////////////////////////////
+
+type SchemaType = Record<string | symbol | number, RulesType>;
+
+export type getTypeFromSchema<T extends SchemaType> = {
+  [K in keyof T]: getTypeFromRule<T[K]>;
+};
+
+///////////////////////////////////////
+
+// TODO:Trouble Implement this
+// interface Options {
+//   enforceKeys?: boolean;
+// }
 
 export default class DTO {
-  data: Data;
-  schema: Schema;
-  options: Options | undefined;
-  constructor(data: Data, schema: Schema, options?: Options) {
-    this.data = data;
-    this.schema = schema;
-    this.options = options;
-    this.validate();
-  }
-  validate() {
-    DTO.validate(this.data, this.schema);
-  }
+  static parseElement(el: unknown, rules: RulesType, key: string) {
+    if (el === undefined && rules.optional) return el as undefined;
 
-  static trim(data: Data, schema: Schema, options?: Options) {
-    //removing keys not in schema
-    const exceddingKeys: string[] = [];
-    for (const key of Object.keys(data)) {
-      if (!schema[key]) {
-        delete data[key];
-        exceddingKeys.push(key);
-      }
-      if (exceddingKeys.length !== 0 && options?.enforceKeys) {
-        throw new validators.InputError(
-          "Too much keys provided. Keys: " + exceddingKeys.join(),
-          "too_much_keys",
-        );
-      }
+    if (el === undefined) {
+      throw new InputError(`-->Key: '${key}' is missing`, "missing_key");
     }
-  }
-  //does nothing if data is valid according to Schema but throws error otherwise
-  static validate(data: Data, schema: Schema, options?: Options) {
-    DTO.trim(data, schema, options);
-    //checking remaining keys
-    for (const [key, rules] of Object.entries(schema)) {
-      //if optional and undefined skip it
-      if (data[key] === undefined && rules.optional) continue;
-      if (data[key] === undefined) {
-        throw new validators.InputError(
-          `La clef ${key} est requise`,
-          "missing_key",
-        );
-      }
-      if (data[key] === null && rules.nullable) continue;
-      if (data[key] === null) {
-        throw new validators.InputError(
-          `La clef ${key} est requise mais elle est null`,
-          "missing_key",
-        );
-      }
+    if (el === null && rules.nullable) return el as null;
+    if (el === null) {
+      throw new InputError(`-->Key: '${key}' can't be null`, "missing_key");
+    }
 
-      if (typeof data[key] === "object" && DTO.isEmptyObject(data[key])) {
-        throw new validators.InputError(
-          `La clef ${key} est requise mais elle est vide`,
-          "missing_key",
-        );
-      }
-      if (rules.type === "array") {
-        if (DTO.isArray(data[key])) {
-          DTO.validateArray(data[key], rules, key);
-        } else {
-          throw new validators.InputError(
-            `La clef ${key} doit être un tableau`,
-            "not_array",
-          );
-        }
-      } else if (rules.type === "object") {
-        if (DTO.isObject(data[key])) {
-          //@ts-expect-error data[key] is indeed Object type
-          DTO.validate(data[key], rules.element);
-        } else {
-          throw new validators.InputError(
-            `la clé ${key} devrait etre un objet`,
-            "not_object",
-          );
-        }
-      }
-      //else it's a simple value check it
+    try {
       switch (rules.type) {
-        case "email":
-          data[key] = DTO.validateEmail(data[key], rules, key);
-          break;
-        case "string":
-          data[key] = DTO.validateString(data[key], rules, key);
-          break;
-        case "number":
-          try {
-            if (typeof data[key] === "string") {
-              if (rules.float === true) {
-                data[key] = parseFloat(data[key]);
-              } else {
-                data[key] = parseInt(data[key]);
-              }
-            }
-          } catch {
-            throw new validators.InputError(
-              `la clé ${key} devrait etre un nombre`,
-              "not_number",
-            );
-          }
-          data[key] = DTO.validateNumber(data[key], rules, key) as number;
-          break;
-        case "password":
-          data[key] = DTO.validatePassword(data[key], rules, key);
-          break;
-        case "boolean":
-          data[key] = DTO.validateBoolean(data[key], key);
-          break;
-        case "date":
-          try {
-            data[key] = assertDate(data[key]);
-          } catch {
-            throw new validators.InputError(
-              `la date ${key} fourrnie n'est pas valide`,
-              "not_date_object",
-            );
-          }
-          data[key] = DTO.validateDate(data[key], rules, key);
-          break;
-        case "enum":
-          DTO.validateEnum(data[key], rules, key);
-          break;
+        case Type.Email:
+          return DTO.validateEmail(el, rules);
+        case Type.String:
+          return DTO.validateString(el, rules);
+        case Type.Number:
+          return DTO.validateNumber(el, rules);
+        case Type.Password:
+          return DTO.validatePassword(el, rules);
+        case Type.Boolean:
+          return DTO.validateBoolean(el);
+        case Type.Date:
+          return DTO.validateDate(el, rules);
+        case Type.Enum:
+          return DTO.validateEnum(el, rules);
+        case Type.Array:
+          return DTO.parseArray(el, rules);
+        case Type.Object:
+          return DTO.parseObject(el, rules);
+        default:
+          throw new InputError(`-->Un handled type`, "unknown_type");
       }
+    } catch (e) {
+      if (e instanceof InputError) {
+        throw new InputError(`.${key}${e.message}`, e.type);
+      }
+      throw e;
     }
   }
-  static validateArray(arr: unknown[], type: ArrayRules, key: string) {
-    if (!(arr instanceof Array)) {
-      throw new validators.InputError(`expecting array in ${key}`, "not_array");
+
+  static parseObject(obj: unknown, rule: ObjectRules) {
+    DTO.assertObject(obj);
+    if (DTO.isFunction(rule.element)) {
+      return new rule.element(obj);
     }
-    if (type.minLength && arr.length < type.minLength) {
-      throw new validators.InputError(
-        `array ${key} should be at least  ${type.minLength} elements long`,
+    const keyRules = Object.entries(rule.element);
+    for (const [key, rule] of keyRules) {
+      try {
+        obj[key] = DTO.parseElement(obj[key], rule, key);
+      } catch (e) {
+        if (e instanceof InputError) {
+          throw new InputError(`.${e.message}`, e.type);
+        }
+        throw e;
+      }
+    }
+    return obj;
+  }
+  static parseArray(arr: unknown, rule: ArrayRules) {
+    if (!(arr instanceof Array)) {
+      throw new InputError(`-->expecting array, given ${arr}`, "not_array");
+    }
+    if (rule.minLength && arr.length < rule.minLength) {
+      throw new InputError(
+        `-->array should be at least ${rule.minLength} elements long, given length: ${arr.length}`,
         "out_of_range",
       );
     }
-    if (type.maxLength && arr.length > type.maxLength) {
-      throw new validators.InputError(
-        `Le tableau ${key} should be less than   ${type.maxLength}   elements long`,
+    if (rule.maxLength && arr.length > rule.maxLength) {
+      throw new InputError(
+        `-->array should be less than ${rule.maxLength} elements long, given length: ${arr.length}`,
         "out_of_range",
       );
     }
 
-    arr.forEach((el) => {
-      DTO.validate(el as Data, type.element);
+    const retArr = arr.map((el: unknown, id) => {
+      try {
+        const ell: unknown = DTO.parseElement(el, rule.element, ``);
+        return ell;
+      } catch (e) {
+        if (e instanceof InputError) {
+          throw new InputError(`.[${id}]${e.message}`, e.type);
+        }
+        throw e;
+      }
     });
+
+    return retArr;
   }
-  static validateEnum(en: unknown, type: EnumRules, key: string) {
+
+  static validateEnum(en: unknown, type: EnumRules) {
     if (!type.values.includes(en)) {
-      throw new validators.InputError(
-        `la clé ${key} devrait etre dans l' enum ${type.values.join()}`,
+      throw new InputError(
+        `-->value not in enum: ${type.values.join()}, given:${en}`,
         "out_of_range",
       );
     }
+    return en;
   }
-  static validateString(str: unknown, type: StringRules, key: string): string {
+  static validateString(str: unknown, type: StringRules) {
+    if (typeof str === "number") return str.toString();
     if (typeof str !== "string") {
-      throw new validators.InputError(
-        `le champ ${key} doit être une chaine de caractères`,
-        "not_string",
-      );
+      throw new InputError(`-->not string, given: ${str}`, "not_string");
     }
-    validators.textValidator(str);
     if (type.minLength && str.length < type.minLength) {
-      throw new validators.InputError(
-        `Dans le champ ${key} string '${str}' doit etre plus grande que ${type.minLength} caractères`,
+      throw new InputError(
+        `-->Should be longer than ${type.minLength} chars, given length: ${str.length}`,
         "out_of_range",
       );
     }
     if (type.maxLength && str.length > type.maxLength) {
-      throw new validators.InputError(
-        `Dans le champ ${key} string '${str}' doit etre plus petite que ${type.maxLength} caractères`,
+      throw new InputError(
+        `-->Should be shorter than ${type.maxLength} chars, given length: ${str.length}`,
         "out_of_range",
       );
     }
-    return str as string;
+    return str;
   }
-  static validateNumber(num: unknown, type: NumberRules, key: string): number {
-    if (typeof num !== "number") {
-      throw new validators.InputError(
-        `le champ ${key} doit etre un nombre`,
-        "not_number",
-      );
+  static validateNumber(num: unknown, type: NumberRules) {
+    if (typeof num === "string") {
+      if (type.float) {
+        const withoutComma = num.replace(",", ".") as string;
+        num = parseFloat(withoutComma);
+      } else {
+        num = parseInt(num);
+      }
+    }
+    if (typeof num !== "number" || isNaN(num)) {
+      throw new InputError(`-->Should be number, given: ${num}`, "not_number");
     }
     if (type.min && num < type.min) {
-      throw new validators.InputError(
-        `Dans le champ ${key}, le nombre ${num} doit etre au moins ${type.min}`,
+      throw new InputError(
+        `-->Number should be more than ${type.min}, given: ${num}`,
         "out_of_range",
       );
     }
     if (type.max && num > type.max) {
-      throw new validators.InputError(
-        `Dans le champ ${key}, le nombre ${num} doit etre moins de ${type.max}`,
+      throw new InputError(
+        `-->Number should be less than ${type.min}, given: ${num}`,
         "out_of_range",
       );
     }
-    return num as number;
+    return num;
   }
-  static validateBoolean(bool: unknown, key: string): boolean {
+  static validateBoolean(bool: unknown) {
     if (typeof bool !== "boolean") {
-      throw new validators.InputError(
-        `le champ ${key} doit etre un boolean`,
+      throw new InputError(
+        `-->Should de boolean, given: ${bool}`,
         "not_boolean",
       );
     }
     return bool;
   }
-  static validateDate(date: unknown, type: DateRules, key: string): Date {
+  static validateDate(date: unknown, type: DateRules) {
+    // string parsable : 1995-12-17T03:24:00
+    // TODO: test this
+    if (typeof date === "string") {
+      const splited = date.split("T");
+      let dateToParse = date;
+      if (splited.length === 1) {
+        dateToParse = `${splited[0]}T00:00:00`;
+      }
+
+      const test = new Date(dateToParse);
+      if (test.toString() === "Invalid Date") {
+        throw new InputError(
+          `-->Failed to parse date, given:${date}.
+          Should be ISO string in format YYYY-MM-DDTHH:mm:ss or YYYY-MM-DD`,
+          "not_date_string",
+        );
+      }
+      date = test;
+    }
+
     if (!(date instanceof Date)) {
-      throw new validators.InputError(
-        `la date ${key} n'est pas un Date`,
-        "not_date_object",
-      );
+      throw new InputError(`-->Should be Date object`, "not_date_object");
     }
     if (type.minDate && date.getTime() < type.minDate.getTime()) {
-      throw new validators.InputError(
-        `La date ${key} fourrnie doit etre après ${type.minDate} `,
+      throw new InputError(
+        `-->Date sould be after ${type.minDate}, given:${date}`,
         "out_of_range",
       );
     }
     if (type.maxDate && date.getTime() > type.maxDate.getTime()) {
-      throw new validators.InputError(
-        `La date ${key} fourrnie doit etre avant ${type.maxDate} `,
+      throw new InputError(
+        `-->Date should be before ${type.maxDate}, given:${date} `,
         "out_of_range",
       );
     }
     return date;
   }
-  static validateEmail(str: unknown, type: StringRules, key: string): string {
+  static validateEmail(str: unknown, type: StringRules) {
     if (typeof str !== "string") {
-      throw new validators.InputError(
-        "l' email fourni n' est pas valide,champ: " + key,
-        "invalid_email",
-      );
+      throw new InputError("-->Email should be string type", "invalid_email");
     }
-    DTO.validateString(str, type, key);
-    validators.emailValidator(str);
+    DTO.validateString(str, type);
+    const re = /^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$/gm; //eslint-disable-line
+    if (!re.test(str)) {
+      throw new InputError("-->Invalid email format", "invalid_email");
+    }
     return str;
   }
-  static validatePassword(
-    str: unknown,
-    type: StringRules,
-    key: string,
-  ): string {
+  static validatePassword(str: unknown, type: StringRules) {
     if (typeof str !== "string") {
-      throw new validators.InputError(
-        `le champ ${key} doit être une chaine de caractères`,
-        "not_string",
+      throw new InputError(`-->Password should be string type`, "not_string");
+    }
+    const re = /^.*(?=.{8,})(?=.*[a-zA-Z])(?=.*\d)(?=.*[!#$%&? "\.,]).*$/gm; //eslint-disable-line
+    if (!re.test(str)) {
+      throw new InputError(
+        `-->Password should be at least 8 chars long and contain at least one number,
+                  one letter and one special character. Ex:'Test1234!'`,
+        "insecure_password",
       );
     }
-    DTO.validateString(str, type, key);
-    validators.passwordValidator(str);
+    DTO.validateString(str, type);
     return str;
   }
 
+  /// guard functions
   static isObject(value: unknown) {
-    return (
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      !(value instanceof Date)
-    );
+    return typeof value === "object" && value !== null;
   }
-
-  static isArray(value: unknown) {
+  static isArray(value: unknown): value is unknown[] {
     return Array.isArray(value);
   }
+  static isEmptyObject(obj: unknown) {
+    return this.isObject(obj) && Object.keys(obj).length === 0;
+  }
+  static isFunction(fn: unknown): fn is (...args: unknown[]) => unknown {
+    return typeof fn === "function";
+  }
 
-  static isEmptyObject(obj: object) {
-    return Object.keys(obj).length === 0;
+  // assertion functions
+  static assertString(el: unknown, name: string): asserts el is string {
+    if (typeof el !== "string")
+      throw new InputError(`-->key ${name} should be a string`, "not_string");
+  }
+  static assertObject(el: unknown): asserts el is { [key: string]: unknown } {
+    if (!DTO.isObject(el)) {
+      throw new InputError(`-->should be an object`, "not_object");
+    }
+  }
+
+  //TODO://Schema manipulation
+  //static extend(sch1: SchemaType, sch2: SchemaType) {
+  //  return { ...sch1, ...sch2 };
+  //}
+  //static partial(sch: SchemaType) {
+  //  const newSch: SchemaType = JSON.parse(JSON.stringify(sch));
+  //  Object.keys(sch).forEach((key: keyof typeof newSch) => {
+  //    newSch[key] = sch[key];
+  //    newSch[key].optional = true;
+  //  });
+  //  return newSch;
+  //}
+  //static omit(sch: SchemaType, keys: (keyof SchemaType)[]) {
+  //  const newSch: SchemaType = JSON.parse(JSON.stringify(sch));
+  //  Object.keys(sch).forEach((key: keyof typeof newSch) => {
+  //    if (keys.includes(key)) delete newSch[key];
+  //    newSch[key] = sch[key];
+  //  });
+  //  return newSch;
+  //}
+}
+export function rule(rule: RulesType) {
+  //errors on any for target
+  //eslint-disable-next-line
+  return function (target: any, propertyKey: string) {
+    const rules = Reflect.getMetadata("rules", target.constructor) || [];
+    rules.push([propertyKey, rule]);
+    Reflect.defineMetadata("rules", rules, target.constructor);
+  };
+}
+abstract class Schema extends DTO {
+  [key: string]: unknown;
+  constructor(data: object) {
+    super();
+    //affectation de tous les éléments passés au constructeur
+    this.parse(data);
+  }
+  private parse(data: object) {
+    const inputEntries = Object.entries(data);
+    for (const [key, value] of inputEntries) {
+      this[key] = value;
+    }
+    //validation selon les métadonnées du schema
+    const rules = Reflect.getMetadata("rules", this.constructor);
+    for (const [key, rule] of rules) {
+      try {
+        this[key] = Schema.parseElement(this[key], rule, key);
+        //validating data
+      } catch (e) {
+        if (e instanceof InputError) {
+          throw new InputError(`{}${e.message}`, e.type);
+        } else {
+          throw e;
+        }
+      }
+    }
   }
 }
