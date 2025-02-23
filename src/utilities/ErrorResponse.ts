@@ -3,5 +3,6 @@ export default class ErrorResponse extends Error {
   constructor(message: string, code: number) {
     super(message);
     this.code = code;
+    Object.setPrototypeOf(this, ErrorResponse.prototype);
   }
 }
