@@ -415,7 +415,7 @@ export function rule(rule: RulesType) {
     Reflect.defineMetadata("rules", rules, target.constructor);
   };
 }
-abstract class Schema extends DTO {
+export abstract class Schema extends DTO {
   [key: string]: unknown;
   constructor(data: object) {
     super();
