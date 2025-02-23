@@ -16,7 +16,7 @@ type ErrorType =
   | "unknown_type"
   | "too_much_keys";
 
-class InputError extends Error {
+export class InputError extends Error {
   errorType = "InputError";
   type?: ErrorType;
   constructor(message: string, type?: ErrorType) {
@@ -278,6 +278,7 @@ export default class DTO {
     }
     return str;
   }
+
   static validateNumber(num: unknown, type?: BaseNumberRules) {
     if (typeof num === "string") {
       if (type?.float) {
@@ -304,6 +305,7 @@ export default class DTO {
     }
     return num;
   }
+
   static validateBoolean(bool: unknown) {
     if (typeof bool !== "boolean") {
       throw new InputError(
@@ -313,6 +315,7 @@ export default class DTO {
     }
     return bool;
   }
+
   static validateDate(date: unknown, type?: BaseDateRules) {
     // string parsable : 1995-12-17T03:24:00
     if (typeof date === "string") {
@@ -350,6 +353,7 @@ export default class DTO {
     }
     return date;
   }
+
   static validateEmail(str: unknown, type?: BaseStringRules) {
     if (typeof str !== "string") {
       throw new InputError("-->Email should be string type", "invalid_email");
@@ -361,6 +365,7 @@ export default class DTO {
     }
     return str;
   }
+
   static validatePassword(str: unknown, type?: BaseStringRules) {
     if (typeof str !== "string") {
       throw new InputError(`-->Password should be string type`, "not_string");
@@ -426,6 +431,7 @@ export default class DTO {
 const METADATA_KEY = Symbol("rules");
 
 type AnyConstructor<T> = new (...args: any[]) => T; //eslint-disable-line
+type AnyObject = { [key: string]: any }; //eslint-disable-line
 
 export function rule(rule: RulesType) {
   //errors on any for target
@@ -445,14 +451,21 @@ export abstract class Schema extends DTO {
     super();
     //affectation de tous les éléments passés au constructeur
     this.parse(data);
+    //remove undefined keys
+    const removeEmpty = (obj: AnyObject) => {
+      const newObj: AnyObject = {};
+      Object.keys(obj).forEach((key) => {
+        if (obj[key] === Object(obj[key])) removeEmpty(obj[key]);
+        else if (obj[key] === undefined) delete obj[key];
+      });
+      return newObj;
+    };
+    removeEmpty(this);
   }
   private parse(data: object) {
-    console.log("\n---parse method---");
     const target = Object.getPrototypeOf(this);
     const inputEntries = Object.entries(data);
     const rules = Reflect.getOwnMetadata(METADATA_KEY, target);
-
-    console.log("rules:", rules);
 
     if (!rules)
       throw new Error("No rules found, you have to use the rule decorator");

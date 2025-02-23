@@ -1,7 +1,7 @@
 import { Connection } from "promise-mysql";
 import ErrorResponse from "./ErrorResponse";
 import { Response } from "express";
-import { InputError } from "./validators";
+import { InputError } from "./DTO";
 
 export default abstract class Controller {
   db: Connection;
@@ -22,6 +22,7 @@ export default abstract class Controller {
       return;
     }
     if (err instanceof InputError) {
+      console.log("bitzeazazre");
       res.status(422).json({ message: err.message, type: err.type });
       if (env === "dev")
         console.error("\x1b[31m", "Error: ", err.message, "\x1b[0m");
