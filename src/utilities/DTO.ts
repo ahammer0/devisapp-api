@@ -158,7 +158,7 @@ export type getTypeFromSchema<T extends SchemaType> = {
 // }
 
 export default class DTO {
-  static parseElement(el: unknown, rules: RulesType, key: string) {
+  protected static parseElement(el: unknown, rules: RulesType, key: string) {
     if (el === undefined && rules.optional) return el as undefined;
 
     if (el === undefined) {
@@ -315,7 +315,6 @@ export default class DTO {
   }
   static validateDate(date: unknown, type?: BaseDateRules) {
     // string parsable : 1995-12-17T03:24:00
-    // TODO: test this
     if (typeof date === "string") {
       const splited = date.split("T");
       let dateToParse = date;
@@ -379,31 +378,29 @@ export default class DTO {
   }
 
   /// guard functions
-  static isObject(value: unknown) {
+  private static isObject(value: unknown) {
     return typeof value === "object" && value !== null;
   }
-  static isArray(value: unknown): value is unknown[] {
-    return Array.isArray(value);
-  }
-  static isEmptyObject(obj: unknown) {
-    return this.isObject(obj) && Object.keys(obj).length === 0;
-  }
-  static isFunction(fn: unknown): fn is (...args: unknown[]) => unknown {
+  private static isFunction(
+    fn: unknown,
+  ): fn is (...args: unknown[]) => unknown {
     return typeof fn === "function";
   }
 
   // assertion functions
-  static assertString(el: unknown, name: string): asserts el is string {
-    if (typeof el !== "string")
-      throw new InputError(`-->key ${name} should be a string`, "not_string");
-  }
-  static assertObject(el: unknown): asserts el is { [key: string]: unknown } {
+  private static assertObject(
+    el: unknown,
+  ): asserts el is { [key: string]: unknown } {
     if (!DTO.isObject(el)) {
       throw new InputError(`-->should be an object`, "not_object");
     }
   }
 
   //TODO://Schema manipulation
+  // -merge(schema1, schema2)
+  // -partial(schema)
+  // -omit(schema, keys)
+  //
   //static extend(sch1: SchemaType, sch2: SchemaType) {
   //  return { ...sch1, ...sch2 };
   //}
@@ -424,15 +421,24 @@ export default class DTO {
   //  return newSch;
   //}
 }
+// TODO: whipe base type to enforce keys
+// maybe look in class metadata for manipulation
+const METADATA_KEY = Symbol("rules");
+
+type AnyConstructor<T> = new (...args: any[]) => T; //eslint-disable-line
+
 export function rule(rule: RulesType) {
   //errors on any for target
   //eslint-disable-next-line
   return function (target: any, propertyKey: string) {
-    const rules = Reflect.getMetadata("rules", target.constructor) || [];
-    rules.push([propertyKey, rule]);
-    Reflect.defineMetadata("rules", rules, target.constructor);
+    //target is the class itself ie the prototype
+    const rules = Reflect.getOwnMetadata(METADATA_KEY, target) ?? new Map();
+
+    rules.set(propertyKey, rule);
+    Reflect.defineMetadata(METADATA_KEY, rules, target);
   };
 }
+
 export abstract class Schema extends DTO {
   [key: string]: unknown;
   constructor(data: object) {
@@ -441,13 +447,24 @@ export abstract class Schema extends DTO {
     this.parse(data);
   }
   private parse(data: object) {
+    console.log("\n---parse method---");
+    const target = Object.getPrototypeOf(this);
     const inputEntries = Object.entries(data);
+    const rules = Reflect.getOwnMetadata(METADATA_KEY, target);
+
+    console.log("rules:", rules);
+
+    if (!rules)
+      throw new Error("No rules found, you have to use the rule decorator");
+
+    //trim excess data
     for (const [key, value] of inputEntries) {
-      this[key] = value;
+      if (rules.has(key)) {
+        this[key] = value;
+      }
     }
-    //validation selon les métadonnées du schema
-    const rules = Reflect.getMetadata("rules", this.constructor);
-    for (const [key, rule] of rules) {
+    //validating data
+    rules.forEach((rule: RulesType, key: string) => {
       try {
         this[key] = Schema.parseElement(this[key], rule, key);
         //validating data
@@ -458,6 +475,97 @@ export abstract class Schema extends DTO {
           throw e;
         }
       }
-    }
+    });
   }
+
+  /**
+   * @description make all parameters optional
+   */
+  static partial<T extends Schema>(schema: AnyConstructor<T>) {
+    class PartialSchema extends schema {}
+    const rules =
+      Reflect.getMetadata(METADATA_KEY, PartialSchema.prototype) ?? [];
+    const newRules = new Map();
+    rules.forEach((rule: RulesType, key: string) => {
+      newRules.set(key, { ...rule, optional: true });
+    });
+
+    Reflect.defineMetadata(METADATA_KEY, newRules, PartialSchema.prototype);
+    return PartialSchema as AnyConstructor<Partial<T>>;
+  }
+
+  // /**
+  //  * @description Merge two schemas,second schema takes precedence
+  //  */
+  // static merge<T extends Schema, K extends Schema>(
+  //   schema1: AnyConstructor<T>,
+  //   schema2: AnyConstructor<K>,
+  // ) {
+  //   class MergedSchema extends schema2 {}
+  //
+  //   //merging rules FIX:
+  //   const rules1 =
+  //     Reflect.getMetadata(METADATA_KEY, schema1.prototype) ?? new Map();
+  //   const rules2 =
+  //     Reflect.getMetadata(METADATA_KEY, schema2.prototype) ?? new Map();
+  //   const newRules = new Map(rules1);
+  //   rules2.forEach((rule: RulesType, key: string) => {
+  //     newRules.set(key, rule);
+  //   });
+  //   console.log("rules1:", newRules);
+  //   Reflect.defineMetadata(METADATA_KEY, newRules, MergedSchema.prototype);
+  //   const proto = Object.getPrototypeOf(schema2);
+  //
+  //   const ret = { ...schema1, ...schema2, __proto__: proto };
+  //   return ret;
+  // }
+  // //TODO: omit
+  // //FIX:
+  // static omit<K extends string>(
+  //   schema: AnyConstructor<Schema>,
+  //   omitKeys: string[],
+  // ) {
+  //   class OutputSchema extends schema {}
+  //   const rules1 =
+  //     Reflect.getMetadata(METADATA_KEY, schema.prototype) ?? new Map();
+  //   const newRules = new Map();
+  //   rules1.forEach((rule: RulesType, key: string) => {
+  //     if (omitKeys.includes(key)) return;
+  //     newRules.set(key, rule);
+  //   });
+  //   console.log("rules1:", newRules);
+  //   Reflect.defineMetadata(METADATA_KEY, newRules, OutputSchema.prototype);
+  //
+  //   return OutputSchema;
+  //   // return OutputSchema as AnyConstructor<OptionalKey<Schema, K>>;
+  //   // return OutputSchema as AnyConstructor<Omit<OutputSchema, K>>;
+  //   // return (data: object) => {
+  //   //   return {
+  //   //     ...schema,
+  //   //     constructor: (data: object) => new OutputSchema(data),
+  //   //     __proto__: schema.prototype,
+  //   //   };
+  //   // };
+  // }
+  // //TODO: static union<T extends Schema>(...schemas: AnyConstructor<T>[]) {
+  // //   return schemas.reduce(
+  // //     (acc, schema) => DTO.merge(acc, schema.prototype),
+  // //     {} as AnyConstructor<Schema>,
+  // //   );
+  // // }
 }
+// class te extends Schema {
+//   @rule({ type: Type.String })
+//   name!: number;
+//   @rule({ type: Type.Number })
+//   namebite!: number;
+// }
+// const data = {
+//   name: "beub",
+//   namebite: 3,
+//   bite: "pas ici",
+// };
+// const partial = Schema.partial(te);
+// const val = new partial(data);
+// console.log("\n---log de val---");
+// console.log(val);
