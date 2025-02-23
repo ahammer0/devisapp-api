@@ -8,8 +8,10 @@ import ErrorResponse from "../utilities/ErrorResponse";
 import { ReqWithId } from "../types/misc";
 import { user } from "../types/users";
 import PaymentModel from "../models/paymentModel";
-import { emailValidator, passwordValidator } from "../utilities/validators";
+import { passwordValidator } from "../utilities/validators";
 import svgCaptcha from "svg-captcha";
+import { UserCreateSchema, UserUpdateByUserSchema } from "../schemas/user";
+import { Schema } from "../utilities/DTO";
 
 export default class UserController extends Controller {
   userModel: UserModel;
@@ -71,47 +73,25 @@ export default class UserController extends Controller {
 
   async register(req: Request, res: Response) {
     try {
-      const {
-        email,
-        first_name,
-        last_name,
-        company_name,
-        company_address,
-        siret,
-        ape_code,
-        rcs_code,
-        tva_number,
-        company_type,
-        quote_infos,
-        captcha,
-        captchaToken,
-      } = req.body;
-      const password = await bcrypt.hash(
-        passwordValidator(req.body.password),
-        10,
-      );
+      const userInput = new UserCreateSchema(req.body);
+      const captcha = Schema.validateString(req.body.captcha);
+      const captchaToken = Schema.validateString(req.body.captchaToken);
+      const password = await bcrypt.hash(userInput.password, 10);
 
       //check if captcha is valid
-      //@ts-expect-error i will not redefine a new type for each jwt type payload
-      const { value: validCaptcha } = jwt.decode(captchaToken);
-      if (validCaptcha !== captcha) {
+      const decoded = jwt.decode(captchaToken);
+      //@ts-expect-error value is indeed in decoded
+      if (decoded && "value" in decoded) {
+        if (decoded.value !== captcha) {
+          throw new ErrorResponse("Invalid Captcha", 400);
+        }
+      } else {
         throw new ErrorResponse("Invalid Captcha", 400);
       }
 
       const user = await this.userModel.create({
-        email: emailValidator(email),
+        ...userInput,
         password,
-        first_name,
-        last_name,
-        company_name,
-        company_address,
-        siret,
-        ape_code,
-        rcs_code,
-        tva_number,
-        company_type,
-        account_status: "valid",
-        quote_infos,
       });
       res.status(201).json({ ...user, password: undefined });
     } catch (e) {
@@ -124,44 +104,17 @@ export default class UserController extends Controller {
       if (!req.id) {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
-      const id: number = req.id;
-      const {
-        email,
-        first_name,
-        last_name,
-        company_name,
-        company_address,
-        siret,
-        ape_code,
-        rcs_code,
-        tva_number,
-        company_type,
-        quote_infos,
-      } = req.body;
+      const id = req.id;
+      const userInput = new UserUpdateByUserSchema(req.body);
 
-      let password: string | undefined;
-      if (req.body.password) {
-        password = await bcrypt.hash(passwordValidator(req.body.password), 10);
-      }
-      const userToSave = {
-        email: emailValidator(email),
-        password: password && passwordValidator(password),
-        first_name,
-        last_name,
-        company_name,
-        company_address,
-        siret,
-        ape_code,
-        rcs_code,
-        tva_number,
-        company_type,
-        quote_infos,
-      };
-      if (!password) {
-        delete userToSave.password;
+      if (userInput.password) {
+        userInput.password = await bcrypt.hash(
+          passwordValidator(userInput.password),
+          10,
+        );
       }
 
-      const user = await this.userModel.update(id, userToSave);
+      const user = await this.userModel.update(id, userInput);
       res.status(200).json({ ...user, password: undefined });
     } catch (e) {
       UserController.handleError(e, res);
@@ -184,7 +137,6 @@ export default class UserController extends Controller {
   async checkToken(req: Request, res: Response) {
     try {
       const token = req.headers.authorization?.split(" ")[1];
-
       //Token validation
       if (!token) {
         throw new ErrorResponse("Unauthorized: Token not found", 401);

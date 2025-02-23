@@ -41,10 +41,10 @@ export default class AdminController extends Controller {
     try {
       class bodyKey extends Schema {
         @rule({ type: Type.String })
-        id!: string;
+        key!: string;
       }
       const bodyDto = new bodyKey(req.body);
-      const key = bodyDto.id;
+      const key = bodyDto.key;
 
       if (!key) throw new ErrorResponse("Bad Request", 400);
 
@@ -96,6 +96,8 @@ export default class AdminController extends Controller {
       const id = Schema.validateNumber(req.params.id);
 
       const user = new UserUpdateSchema(req.body);
+      console.log(user);
+
       const updatedUser = await this.userModel.update(id, user);
       res.status(200).json(updatedUser);
     } catch (e) {

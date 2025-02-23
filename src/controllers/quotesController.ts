@@ -4,11 +4,12 @@ import { Response } from "express";
 import Controller from "../utilities/Controller";
 import { ReqWithId } from "../types/misc";
 import ErrorResponse from "../utilities/ErrorResponse";
-import { quote_full_create } from "../types/quotes";
 import WorkModel from "../models/workModel";
 import UserModel from "../models/userModel";
 import getQuotePdfStream from "../utilities/QuotePdfComponent";
 import { isPast } from "../utilities/datesHandlers";
+import { Schema } from "../utilities/DTO";
+import { FullQuoteCreate } from "../schemas/quote";
 
 export default class QuotesController extends Controller {
   quoteModel: QuoteModel;
@@ -36,15 +37,9 @@ export default class QuotesController extends Controller {
       if (!req.id) {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
+      const inputQuote = new FullQuoteCreate({ ...req.body, user_id: req.id });
 
-      const newQuote: quote_full_create = req.body;
-      newQuote.expires_at = new Date(
-        newQuote.expires_at ?? new Date(),
-      ).toISOString();
-
-      const id = req.id;
-      newQuote.user_id = id;
-      const quote = await this.quoteModel.create(newQuote);
+      const quote = await this.quoteModel.create(inputQuote);
       res.status(201).json(quote);
     } catch (e) {
       QuotesController.handleError(e, res);
@@ -65,7 +60,7 @@ export default class QuotesController extends Controller {
       const media = await this.quoteModel.createMedia(
         req.files.image.data,
         req.id,
-        req.body.quoteId,
+        Schema.validateNumber(req.body.quoteId),
       );
       res.status(201).json(media);
     } catch (e) {
@@ -79,7 +74,7 @@ export default class QuotesController extends Controller {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
       const filePath = await this.quoteModel.getMediaByIdByUserId(
-        parseInt(req.params.id),
+        Schema.validateNumber(req.params.id),
         req.id,
       );
       if (!filePath) throw new ErrorResponse("Requested media not found", 404);
@@ -107,7 +102,7 @@ export default class QuotesController extends Controller {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
       const userId = req.id;
-      const quoteId = parseInt(req.params.id);
+      const quoteId = Schema.validateNumber(req.params.id);
       const quote = await this.quoteModel.getByIdByUserId(quoteId, userId);
       res.status(200).json(quote);
     } catch (e) {
@@ -122,6 +117,7 @@ export default class QuotesController extends Controller {
       }
       const userId = req.id;
       const quoteId = parseInt(req.params.id);
+      //TODO:
       const quote = req.body;
       //formatting dates
       quote.expires_at = new Date(quote.expires_at);
@@ -143,7 +139,7 @@ export default class QuotesController extends Controller {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
       const userId = req.id;
-      const quoteId = parseInt(req.params.id);
+      const quoteId = Schema.validateNumber(req.params.id);
       const quote = await this.quoteModel.deleteByIdByUserId(quoteId, userId);
       res.status(200).json(quote);
     } catch (e) {
@@ -153,7 +149,7 @@ export default class QuotesController extends Controller {
   async getQuotePdf(req: ReqWithId, res: Response) {
     try {
       //validating req body
-      const quoteId = parseInt(req.params.id);
+      const quoteId = Schema.validateNumber(req.params.id);
       if (!quoteId || isNaN(quoteId))
         throw new ErrorResponse("Bad Request", 400);
       if (!req.id) throw new ErrorResponse("Authentification Failed", 401);
@@ -185,7 +181,7 @@ export default class QuotesController extends Controller {
       if (!req.id) {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
-      const mediaId = parseInt(req.params.id);
+      const mediaId = Schema.validateNumber(req.params.id);
       await this.quoteModel.deleteMediaByIdByUserId(mediaId, req.id);
       res.status(200).json(true);
     } catch (e) {

@@ -1,13 +1,13 @@
 export type customer = {
   id: number;
   user_id: number;
-  first_name: string | null;
-  last_name: string | null;
-  street: string | null;
-  city: string | null;
-  zip: string | null;
-  phone: string | null;
-  email: string | null;
+  first_name: string;
+  last_name: string;
+  street: string;
+  city: string;
+  zip: number;
+  phone: string;
+  email: string;
 };
 
 export type customer_create = Partial<Omit<customer, "id">> & {

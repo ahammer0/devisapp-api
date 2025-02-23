@@ -5,6 +5,7 @@ import { workCreate } from "../types/works";
 import Controller from "../utilities/Controller";
 import { ReqWithId } from "../types/misc";
 import ErrorResponse from "../utilities/ErrorResponse";
+import { Schema } from "../utilities/DTO";
 
 export default class WorkController extends Controller {
   workModel: WorkModel;
@@ -21,6 +22,7 @@ export default class WorkController extends Controller {
   }
 
   async createWork(req: ReqWithId, res: Response) {
+    //TODO:
     const newWork: workCreate = req.body;
 
     try {
@@ -54,7 +56,7 @@ export default class WorkController extends Controller {
       }
       const userId: number = req.id;
       const work = await this.workModel.getByIdByUserId(
-        parseInt(req.params.id),
+        Schema.validateNumber(req.params.id),
         userId,
       );
       res.status(200).json(work);
@@ -70,6 +72,7 @@ export default class WorkController extends Controller {
       }
       const userId: number = req.id;
 
+      //TODO:
       const work = await this.workModel.updateByidByUserId(
         parseInt(req.params.id),
         userId,
@@ -88,7 +91,7 @@ export default class WorkController extends Controller {
       }
       const userId = req.id;
       const work = await this.workModel.deleteByIdByUserId(
-        parseInt(req.params.id),
+        Schema.validateNumber(req.params.id),
         userId,
       );
       res.status(200).json(work);

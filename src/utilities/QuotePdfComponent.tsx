@@ -123,7 +123,7 @@ const QuotePdfComponent = ({
         return (
           acc +
           ((el.quantity * wo.unit_price * (100 - el.discount)) / 100) *
-            (el.vat / 100)
+            (parseFloat(el.vat) / 100)
         );
       }, 0) *
         (100 - quote.global_discount)) /

@@ -101,3 +101,85 @@ export class UserUpdateSchema extends Schema {
   })
   quote_infos?: string;
 }
+
+export class UserCreateSchema extends Schema {
+  @rule({
+    type: Type.String,
+  })
+  email!: string;
+
+  @rule({
+    type: Type.Password,
+  })
+  password!: string;
+
+  @rule({
+    type: Type.String,
+    optional: true,
+    maxLength: 25,
+  })
+  first_name?: string;
+
+  @rule({
+    type: Type.String,
+    optional: true,
+    maxLength: 25,
+  })
+  last_name?: string;
+
+  @rule({
+    type: Type.String,
+    optional: true,
+    maxLength: 50,
+  })
+  company_name?: string;
+
+  @rule({
+    type: Type.String,
+    optional: true,
+    maxLength: 100,
+  })
+  company_address?: string;
+
+  @rule({
+    type: Type.String,
+    optional: true,
+    maxLength: 25,
+  })
+  siret?: string;
+
+  @rule({
+    type: Type.String,
+    optional: true,
+    maxLength: 20,
+  })
+  ape_code?: string;
+
+  @rule({
+    type: Type.String,
+    optional: true,
+    maxLength: 20,
+  })
+  rcs_code?: string;
+
+  @rule({
+    type: Type.String,
+    optional: true,
+    maxLength: 20,
+  })
+  tva_number?: string;
+
+  @rule({
+    type: Type.Enum,
+    optional: true,
+    values: ["Individuelle", "SAS", "SARL", "EURL"],
+  })
+  company_type!: "Individuelle" | "SAS" | "SARL" | "EURL";
+
+  @rule({
+    type: Type.String,
+    optional: true,
+  })
+  quote_infos?: string;
+}
+export const UserUpdateByUserSchema = Schema.partial(UserCreateSchema);

@@ -438,7 +438,8 @@ export function rule(rule: RulesType) {
   //eslint-disable-next-line
   return function (target: any, propertyKey: string) {
     //target is the class itself ie the prototype
-    const rules = Reflect.getOwnMetadata(METADATA_KEY, target) ?? new Map();
+    //do not use getOwnMetadata to get properties of parent classes
+    const rules = Reflect.getMetadata(METADATA_KEY, target) ?? new Map();
 
     rules.set(propertyKey, rule);
     Reflect.defineMetadata(METADATA_KEY, rules, target);

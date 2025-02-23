@@ -4,7 +4,8 @@ import TicketModel from "../models/ticketsModel";
 import Controller from "../utilities/Controller";
 import { ReqWithId } from "../types/misc";
 import ErrorResponse from "../utilities/ErrorResponse";
-import { ticketCreate } from "../types/tickets";
+import { Schema } from "../utilities/DTO";
+import { TicketCreateSchema } from "../schemas/ticket";
 
 export default class TicketsController extends Controller {
   ticketsModel: TicketModel;
@@ -24,7 +25,7 @@ export default class TicketsController extends Controller {
       if (!req.id) {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
-      const userId: number = req.id;
+      const userId = req.id;
       const tickets = await this.ticketsModel.getAllByUserId(userId);
       res.status(200).json(tickets);
     } catch (error) {
@@ -37,7 +38,7 @@ export default class TicketsController extends Controller {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
       const userId: number = req.id;
-      const id = parseInt(req.params.id);
+      const id = Schema.validateNumber(req.params.id);
       const ticket = await this.ticketsModel.getByIdByUserId(id, userId);
       res.status(200).json(ticket);
     } catch (error) {
@@ -51,8 +52,7 @@ export default class TicketsController extends Controller {
         throw new ErrorResponse("Unauthorized: Token not found", 401);
       }
       const userId: number = req.id;
-      //todo valider le body
-      const ticket: ticketCreate = req.body;
+      const ticket = new TicketCreateSchema(req.body);
       const ticketCreated = await this.ticketsModel.create(userId, ticket);
       res.status(201).json(ticketCreated);
     } catch (error) {
@@ -68,7 +68,7 @@ export default class TicketsController extends Controller {
         throw new ErrorResponse("No ticket id in request", 422);
       }
       const userId: number = req.id;
-      const ticketId = parseInt(req.params.id);
+      const ticketId = Schema.validateNumber(req.params.id);
       await this.ticketsModel.deleteByIdByUserId(ticketId, userId);
       res.status(200).json("Deleted successfully");
     } catch (error) {

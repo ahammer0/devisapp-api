@@ -6,7 +6,7 @@ import ErrorResponse from "../utilities/ErrorResponse";
 import UserModel from "../models/userModel";
 import PaymentModel from "../models/paymentModel";
 import Stripe from "stripe";
-import DTO from "../utilities/DTO";
+import { Schema } from "../utilities/DTO";
 
 export default class PaymentsController extends Controller {
   userModel: UserModel;
@@ -31,10 +31,10 @@ export default class PaymentsController extends Controller {
 
     const stripe = new Stripe(stripeSecret);
     try {
-      const bodyDTO = new DTO(req.body, {
-        amount: { type: "enum", values: [30, 100] },
+      const amountString = Schema.validateEnum(req.body.amount, {
+        values: ["30", "100"],
       });
-      const amount = bodyDTO.data.amount as 30 | 100;
+      const amount = Schema.validateNumber(amountString) as 30 | 100;
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount * 100,
@@ -65,8 +65,7 @@ export default class PaymentsController extends Controller {
     }
 
     try {
-      const bodyDTO = new DTO(req.body, { payment_intent: { type: "string" } });
-      const pi = bodyDTO.data.payment_intent as string;
+      const pi = Schema.validateString(req.body.payment_intent);
 
       const stripe = new Stripe(stripeSecret);
       const paymentIntent = await stripe.paymentIntents.retrieve(pi);

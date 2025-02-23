@@ -22,7 +22,7 @@ export type quote_element = {
   quote_id: number;
   work_id: number;
   quote_section: string;
-  vat: 20 | 10 | 5.5 | 0;
+  vat: "20" | "10" | "5.5" | "0";
   discount: number;
   quantity: number;
 };
@@ -45,7 +45,6 @@ export type full_quote = Omit<quote, "customer_id"> & {
 export type quote_full_create = Exclude<quote_create, "customer_id"> & {
   quote_elements?: quote_element_create[];
   quote_medias?: quote_media_create[];
-} & (
-    | { customer?: customer_create; customer_id?: never }
-    | { customer_id: customer["id"]; customer?: never }
-  );
+  customer?: customer_create;
+  customer_id?: customer["id"];
+};
