@@ -7,8 +7,8 @@ import PaymentModel from "../models/paymentModel";
 import TicketModel from "../models/ticketsModel";
 import Controller from "../utilities/Controller";
 import ErrorResponse from "../utilities/ErrorResponse";
-import DTO from "../utilities/DTO";
-import { userUpdate } from "../schemas/user";
+import { Type, Schema, rule } from "../utilities/DTO";
+import { UserUpdateSchema } from "../schemas/user";
 
 export default class AdminController extends Controller {
   userModel: UserModel;
@@ -39,9 +39,13 @@ export default class AdminController extends Controller {
 
   async login(req: Request, res: Response) {
     try {
-      const bodyDto = new DTO(req.body, { key: { type: "string" } });
-      bodyDto.validate();
-      const key = bodyDto.data.key;
+      class bodyKey extends Schema {
+        @rule({ type: Type.String })
+        id!: string;
+      }
+      const bodyDto = new bodyKey(req.body);
+      const key = bodyDto.id;
+
       if (!key) throw new ErrorResponse("Bad Request", 400);
 
       const adminKey = process.env.ADMIN_KEY;
@@ -80,12 +84,8 @@ export default class AdminController extends Controller {
   }
   async getOneUser(req: Request, res: Response) {
     try {
-      const paramsDTO = new DTO(
-        { id: parseInt(req.params.id) },
-        { id: { type: "number", min: 0 } },
-      );
-      const id = paramsDTO.data.id;
-      const user = await this.userModel.getById(id as number);
+      const id = Schema.validateNumber(req.params.id);
+      const user = await this.userModel.getById(id);
       res.status(200).json(user);
     } catch (e) {
       AdminController.handleError(e, res);
@@ -93,14 +93,9 @@ export default class AdminController extends Controller {
   }
   async editUser(req: Request, res: Response) {
     try {
-      const paramsDTO = new DTO(
-        { id: req.params.id },
-        { id: { type: "number", min: 0 } },
-      );
-      const id = paramsDTO.data.id as number;
+      const id = Schema.validateNumber(req.params.id);
 
-      const userDto = new DTO(req.body, userUpdate);
-      const user = userDto.data;
+      const user = new UserUpdateSchema(req.body);
       const updatedUser = await this.userModel.update(id, user);
       res.status(200).json(updatedUser);
     } catch (e) {
@@ -109,11 +104,7 @@ export default class AdminController extends Controller {
   }
   async deleteUser(req: Request, res: Response) {
     try {
-      const idDto = new DTO(
-        { id: req.params.id },
-        { id: { type: "number", min: 0 } },
-      );
-      const id = idDto.data.id as number;
+      const id = Schema.validateNumber(req.params.id);
       const resp = await this.userModel.delete(id);
       if (!resp) {
         throw "Cannot delete user";
@@ -151,11 +142,7 @@ export default class AdminController extends Controller {
   }
   async closeTicket(req: ReqWithId, res: Response) {
     try {
-      const idDto = new DTO(
-        { id: req.params.id },
-        { id: { type: "number", min: 0 } },
-      );
-      const id = idDto.data.id as number;
+      const id = Schema.validateNumber(req.params.id);
       await this.ticketModel.closeTicket(id);
       res.status(200).json("Closed successfully");
     } catch (error) {
@@ -164,11 +151,7 @@ export default class AdminController extends Controller {
   }
   async getOneTicket(req: ReqWithId, res: Response) {
     try {
-      const idDto = new DTO(
-        { id: req.params.id },
-        { id: { type: "number", min: 0 } },
-      );
-      const id = idDto.data.id as number;
+      const id = Schema.validateNumber(req.params.id);
       const ticket = await this.ticketModel.getById(id);
       res.status(200).json(ticket);
     } catch (error) {
@@ -177,17 +160,9 @@ export default class AdminController extends Controller {
   }
   async respondToTicket(req: ReqWithId, res: Response) {
     try {
-      const idDto = new DTO(
-        { id: req.params.id },
-        { id: { type: "number", min: 0 } },
-      );
-      const id = idDto.data.id as number;
-
-      const bodyDto = new DTO(req.body, { response: { type: "string" } });
-      await this.ticketModel.setTicketResponse(
-        id,
-        bodyDto.data.response as string,
-      );
+      const id = Schema.validateNumber(req.params.id);
+      const response = Schema.validateString(req.body.response);
+      await this.ticketModel.setTicketResponse(id, response);
       res.status(200).json("Responded successfully");
     } catch (error) {
       AdminController.handleError(error, res);
